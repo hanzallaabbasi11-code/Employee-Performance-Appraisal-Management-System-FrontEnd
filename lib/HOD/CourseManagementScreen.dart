@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:epams/CMModal.dart';
-import 'package:epams/CourseManagementModel.dart';
+import 'package:epams/HOD/CMModal.dart';
+import 'package:epams/HOD/CourseManagementModel.dart';
 import 'package:epams/Session.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';

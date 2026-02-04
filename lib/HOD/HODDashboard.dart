@@ -1,10 +1,10 @@
-import 'package:epams/AddPeerEvaluatorScreen.dart';
-import 'package:epams/CHRPointsSettingScreen.dart';
-import 'package:epams/CourseManagementScreen.dart';
-import 'package:epams/SeePerformanceScreen.dart';
+import 'package:epams/HOD/AddPeerEvaluatorScreen.dart';
+import 'package:epams/HOD/CHRPointsSettingScreen.dart';
+import 'package:epams/HOD/CourseManagementScreen.dart';
+import 'package:epams/HOD/SeePerformanceScreen.dart';
 //import 'package:epams/SeePerformanceScreen.dart';
 import 'package:flutter/material.dart';
-import 'package:epams/AddKpiScreen.dart';
+import 'package:epams/HOD/AddKpiScreen.dart';
 
 class HodDashboard extends StatefulWidget {
   const HodDashboard({super.key});

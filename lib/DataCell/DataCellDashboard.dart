@@ -1,7 +1,7 @@
-import 'package:epams/UploadCoursesScreen.dart';
-import 'package:epams/UploadStudentsScreen.dart';
-import 'package:epams/UploadTeachersScreen.dart';
-import 'package:epams/UploadEnrollmentScreen.dart';
+import 'package:epams/DataCell/UploadCoursesScreen.dart';
+import 'package:epams/DataCell/UploadStudentsScreen.dart';
+import 'package:epams/DataCell/UploadTeachersScreen.dart';
+import 'package:epams/DataCell/UploadEnrollmentScreen.dart';
 import 'package:flutter/material.dart';
 
 class DataCellDashboard extends StatelessWidget {

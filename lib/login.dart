@@ -1,11 +1,11 @@
 import 'dart:convert';
 
-import 'package:epams/AdminDashboard.dart';
-import 'package:epams/DataCellDashboard.dart';
-import 'package:epams/DirectorDashboard.dart';
-import 'package:epams/HODDashboard.dart';
-import 'package:epams/StudentDashboard.dart';
-import 'package:epams/TeacherDashboard.dart';
+//import 'package:epams/AdminDashboard.dart';
+import 'package:epams/DataCell/DataCellDashboard.dart';
+import 'package:epams/Director/DirectorDashboard.dart';
+import 'package:epams/HOD/HODDashboard.dart';
+import 'package:epams/Student/StudentDashboard.dart';
+import 'package:epams/Teacher/TeacherDashboard.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -38,9 +38,9 @@ class _LoginState extends State<Login> {
     Widget nextScreen;
 
     switch (role) {
-      case 'Admin':
-        nextScreen = const AdminDashboard();
-        break;
+      // case 'Admin':
+      //   nextScreen = const AdminDashboard();
+      //   break;
       case 'HOD':
         nextScreen = const HodDashboard();
         break;
