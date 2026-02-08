@@ -1,3 +1,4 @@
+import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 
 class StudentDashboard extends StatefulWidget {
@@ -191,6 +192,28 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 15,),
+                  SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    // exit(0);
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Login()),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text("Logout", style: TextStyle(fontSize: 16)),
+                ),
+              ),
               ],
             ),
           ),

@@ -2,6 +2,7 @@ import 'package:epams/HOD/AddPeerEvaluatorScreen.dart';
 import 'package:epams/HOD/CHRPointsSettingScreen.dart';
 import 'package:epams/HOD/CourseManagementScreen.dart';
 import 'package:epams/HOD/SeePerformanceScreen.dart';
+import 'package:epams/login.dart';
 //import 'package:epams/SeePerformanceScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:epams/HOD/AddKpiScreen.dart';
@@ -248,6 +249,29 @@ class _HodState extends State<HodDashboard> {
                     },
                   ),
                 ],
+              ),
+              const SizedBox(height: 15),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Login()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Logout',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
               ),
             ],
           ),

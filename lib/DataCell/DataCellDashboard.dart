@@ -2,6 +2,7 @@ import 'package:epams/DataCell/UploadCoursesScreen.dart';
 import 'package:epams/DataCell/UploadStudentsScreen.dart';
 import 'package:epams/DataCell/UploadTeachersScreen.dart';
 import 'package:epams/DataCell/UploadEnrollmentScreen.dart';
+import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 
 class DataCellDashboard extends StatelessWidget {
@@ -120,6 +121,10 @@ class DataCellDashboard extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () {
                     // exit(0);
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Login()),
+                    );
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
