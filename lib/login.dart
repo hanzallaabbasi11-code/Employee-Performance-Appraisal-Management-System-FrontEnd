@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-//import 'package:epams/AdminDashboard.dart';
 import 'package:epams/DataCell/DataCellDashboard.dart';
 import 'package:epams/Director/DirectorDashboard.dart';
 import 'package:epams/HOD/HODDashboard.dart';
@@ -20,59 +18,58 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   TextEditingController username = TextEditingController();
   TextEditingController password = TextEditingController();
+  bool _obscurePassword = true;
+
 
   Future<void> login() async {
-  final url = Uri.parse(
-    '$Url/Users/Login?id=${username.text.trim()}&password=${password.text.trim()}',
-  );
+    final url = Uri.parse(
+      '$Url/Users/Login?id=${username.text.trim()}&password=${password.text.trim()}',
+    );
 
-  final response = await http.post(url);
+    final response = await http.post(url);
 
-  print(response.statusCode);
-  print(response.body);
+    print(response.statusCode);
+    print(response.body);
 
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    final String role = data['role'];
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final String role = data['role'];
 
-    Widget nextScreen;
+      Widget nextScreen;
 
-    switch (role) {
-      // case 'Admin':
-      //   nextScreen = const AdminDashboard();
-      //   break;
-      case 'HOD':
-        nextScreen = const HodDashboard();
-        break;
-      case 'Teacher':
-        nextScreen = const Teacherdashboard();
-        break;
-      case 'Student':
-        nextScreen = const StudentDashboard();
-        break;
-      case 'Director':
-        nextScreen = const Directordashboard();
-        break;
-      case 'DataCell':
-        nextScreen= const DataCellDashboard();  
-        break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unknown user role')),
-        );
-        return;
+      switch (role) {
+        case 'HOD':
+          nextScreen = const HodDashboard();
+          break;
+        case 'Teacher':
+          nextScreen = const Teacherdashboard();
+          break;
+        case 'Student':
+          nextScreen = const StudentDashboard();
+          break;
+        case 'Director':
+          nextScreen = const Directordashboard();
+          break;
+        case 'DataCell':
+          nextScreen = const DataCellDashboard();
+          break;
+        default:
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Unknown user role')));
+          return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => nextScreen),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid username or password')),
+      );
     }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => nextScreen),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invalid username or password')),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -145,11 +142,24 @@ class _LoginState extends State<Login> {
                       Text('Password', style: TextStyle(fontSize: 14)),
                       const SizedBox(height: 6),
                       TextField(
-                         obscureText: true,
+                        obscureText: _obscurePassword,
                         controller: password,
+
                         decoration: InputDecoration(
                           hintText: 'Enter your password',
                           filled: true,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                           fillColor: const Color(0xFFF3F8F5),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
