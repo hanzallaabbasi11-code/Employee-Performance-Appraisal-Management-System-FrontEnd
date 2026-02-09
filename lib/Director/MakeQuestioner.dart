@@ -1,3 +1,4 @@
+import 'package:epams/Director/CreateNewQuestionnaier.dart';
 import 'package:epams/Director/EditEvaluationQuestionnaire.dart';
 import 'package:epams/Director/QuestionnaireModel.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,6 @@ class _MakequestionerState extends State<Makequestioner> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 /// ===== HEADER =====
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -85,7 +85,7 @@ class _MakequestionerState extends State<Makequestioner> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 5,),
+                      const SizedBox(width: 5),
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
@@ -95,8 +95,13 @@ class _MakequestionerState extends State<Makequestioner> {
                               borderRadius: BorderRadius.circular(15),
                             ),
                           ),
-                          onPressed: () {},
-                          child:const Text(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context)=> const Createnewquestionnaier())
+                            );
+                          },
+                          child: const Text(
                             '+ Create New',
                             style: TextStyle(
                               color: Colors.green,
@@ -118,8 +123,8 @@ class _MakequestionerState extends State<Makequestioner> {
                   tag: 'Student',
                   tagColor: Colors.blue,
                   questions: 12,
-                 // startDate: 'Nov 15, 2025',
-                 // endDate: 'Dec 15, 2025',
+                  // startDate: 'Nov 15, 2025',
+                  // endDate: 'Dec 15, 2025',
                 ),
 
                 /// ===== CARD 2 =====
@@ -128,8 +133,8 @@ class _MakequestionerState extends State<Makequestioner> {
                   tag: 'Peer',
                   tagColor: Colors.purple,
                   questions: 8,
-                 // startDate: 'Nov 10, 2025',
-                 // endDate: 'Dec 10, 2025',
+                  // startDate: 'Nov 10, 2025',
+                  // endDate: 'Dec 10, 2025',
                 ),
               ],
             ),
@@ -149,7 +154,7 @@ class QuestionnaireCard extends StatelessWidget {
   final String tag;
   final Color tagColor;
   final int questions;
- // final String startDate;
+  // final String startDate;
   //final String endDate;
 
   const QuestionnaireCard({
@@ -158,8 +163,8 @@ class QuestionnaireCard extends StatelessWidget {
     required this.tag,
     required this.tagColor,
     required this.questions,
-   // required this.startDate,
-   // required this.endDate,
+    // required this.startDate,
+    // required this.endDate,
   });
 
   @override
@@ -167,15 +172,12 @@ class QuestionnaireCard extends StatelessWidget {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             /// TITLE + QUESTIONS
             Row(
               children: [
@@ -192,7 +194,9 @@ class QuestionnaireCard extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -201,10 +205,7 @@ class QuestionnaireCard extends StatelessWidget {
                     children: [
                       const Text(
                         'Questions',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.green),
                       ),
                       Text(
                         questions.toString(),
@@ -250,7 +251,6 @@ class QuestionnaireCard extends StatelessWidget {
             //     ),
             //   ],
             // ),
-
             const SizedBox(height: 12),
 
             /// BUTTONS
@@ -258,29 +258,28 @@ class QuestionnaireCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EditQuestionnaireScreen(
-          questionnaire: QuestionnaireModel(
-            title: title,
-            type: tag,
-            questionsCount: questions,
-            questions: List.generate(
-              questions,
-              (index) =>
-                  'Sample question ${index + 1} for $title',
-            ),
-          ),
-        ),
-      ),
-    );
-  },
-  icon: const Icon(Icons.edit, size: 16),
-  label: const Text('Edit'),
-),
-
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditQuestionnaireScreen(
+                            questionnaire: QuestionnaireModel(
+                              title: title,
+                              type: tag,
+                              questionsCount: questions,
+                              questions: List.generate(
+                                questions,
+                                (index) =>
+                                    'Sample question ${index + 1} for $title',
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Edit'),
+                  ),
                 ),
                 // const SizedBox(width: 10),
                 // Expanded(
