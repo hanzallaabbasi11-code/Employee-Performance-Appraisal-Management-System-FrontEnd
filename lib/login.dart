@@ -42,7 +42,7 @@ class _LoginState extends State<Login> {
           nextScreen = const HodDashboard();
           break;
         case 'Teacher':
-          nextScreen = const Teacherdashboard();
+          nextScreen = Teacherdashboard();
           break;
         case 'Student':
           nextScreen = const StudentDashboard();
