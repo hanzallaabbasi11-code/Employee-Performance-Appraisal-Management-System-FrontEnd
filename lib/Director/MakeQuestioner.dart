@@ -1,8 +1,69 @@
-import 'package:epams/Director/CreateNewQuestionnaier.dart';
-import 'package:epams/Director/EditEvaluationQuestionnaire.dart';
-import 'package:epams/Director/QuestionnaireModel.dart';
+import 'dart:convert';
+import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
+import 'CreateNewQuestionnaier.dart';
+import 'EditEvaluationQuestionnaire.dart';
+
+/// ================= API CONFIG =================
+final String baseUrl = '$Url/Questionnaire';
+
+/// ================= MODEL =================
+class QuestionnaireModel {
+  final int id;
+  final String type;
+  final int questionCount;
+  bool isActive;
+
+  QuestionnaireModel({
+    required this.id,
+    required this.type,
+    required this.questionCount,
+    required this.isActive,
+  });
+
+  factory QuestionnaireModel.fromJson(Map<String, dynamic> json) {
+    return QuestionnaireModel(
+      id: json['Id'],
+      type: json['Type'],
+      questionCount: json['QuestionCount'],
+      isActive: json['Flag'] == "1",
+    );
+  }
+}
+
+/// ================= API METHODS =================
+Future<List<QuestionnaireModel>> getAllQuestionnaires() async {
+  final response = await http.get(Uri.parse('$baseUrl/GetAll'));
+
+  if (response.statusCode == 200) {
+    final List data = jsonDecode(response.body);
+    return data.map((e) => QuestionnaireModel.fromJson(e)).toList();
+  } else {
+    throw Exception("Failed to load questionnaires");
+  }
+}
+
+Future<String?> toggleQuestionnaire({
+  required int questionnaireId,
+  required bool turnOn,
+}) async {
+  final response = await http.post(
+    Uri.parse("$baseUrl/Toggle"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({"QuestionnaireId": questionnaireId, "TurnOn": turnOn}),
+  );
+
+  if (response.statusCode == 200) {
+    return null;
+  } else {
+    final body = jsonDecode(response.body);
+    return body["Message"] ?? "Something went wrong";
+  }
+}
+
+/// ================= MAIN SCREEN =================
 class Makequestioner extends StatefulWidget {
   const Makequestioner({super.key});
 
@@ -11,166 +72,166 @@ class Makequestioner extends StatefulWidget {
 }
 
 class _MakequestionerState extends State<Makequestioner> {
+  late Future<List<QuestionnaireModel>> future;
+
+  @override
+  void initState() {
+    super.initState();
+    future = getAllQuestionnaires();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                /// ===== HEADER =====
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.arrow_back),
-                    ),
-                    const SizedBox(width: 4),
+        child: FutureBuilder<List<QuestionnaireModel>>(
+          future: future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Evaluation Questionnaires',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            'Manage and create evaluation forms for your institute',
-                            style: TextStyle(color: Colors.grey[600]),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
+            if (snapshot.hasError) {
+              return Center(child: Text(snapshot.error.toString()));
+            }
 
-                    const SizedBox(width: 6),
+            final list = snapshot.data!;
 
-                    Image.asset(
-                      'assets/images/logo.jpeg',
-                      height: 40,
-                      fit: BoxFit.contain,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                /// ===== GREEN INFO BAR =====
-                Container(
-                  height: 50,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// ===== HEADER =====
+                  Row(
                     children: [
-                      const Text(
-                        '2 Questionnaires Available',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back),
                       ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context)=> const Createnewquestionnaier())
-                            );
-                          },
-                          child: const Text(
-                            '+ Create New',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
+                      const SizedBox(width: 6),
+                      const Expanded(
+                        child: Text(
+                          "Evaluation Questionnaires",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+                      Image.asset('assets/images/logo.jpeg', height: 40),
                     ],
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                /// ===== CARD 1 =====
-                const QuestionnaireCard(
-                  title: 'Teacher Evaluation - Fall 2025',
-                  tag: 'Student',
-                  tagColor: Colors.blue,
-                  questions: 12,
-                  // startDate: 'Nov 15, 2025',
-                  // endDate: 'Dec 15, 2025',
-                ),
+                  /// ===== INFO BAR =====
+                  Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "${list.length} Questionnaires Available",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const Createnewquestionnaier(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              "+ Create New",
+                              style: TextStyle(color: Colors.green,fontSize:13),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                /// ===== CARD 2 =====
-                const QuestionnaireCard(
-                  title: 'Peer Review Form - Fall 2025',
-                  tag: 'Peer',
-                  tagColor: Colors.purple,
-                  questions: 8,
-                  // startDate: 'Nov 10, 2025',
-                  // endDate: 'Dec 10, 2025',
-                ),
-              ],
-            ),
-          ),
+                  const SizedBox(height: 16),
+
+                  /// ===== LIST =====
+                  ...list.map((q) => QuestionnaireCard(model: q)),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-/// =======================================================
-/// ================== CARD WIDGET =========================
-/// =======================================================
+/// ================= CARD =================
+class QuestionnaireCard extends StatefulWidget {
+  final QuestionnaireModel model;
 
-class QuestionnaireCard extends StatelessWidget {
-  final String title;
-  final String tag;
-  final Color tagColor;
-  final int questions;
-  // final String startDate;
-  //final String endDate;
+  const QuestionnaireCard({super.key, required this.model});
 
-  const QuestionnaireCard({
-    super.key,
-    required this.title,
-    required this.tag,
-    required this.tagColor,
-    required this.questions,
-    // required this.startDate,
-    // required this.endDate,
-  });
+  @override
+  State<QuestionnaireCard> createState() => _QuestionnaireCardState();
+}
+
+class _QuestionnaireCardState extends State<QuestionnaireCard> {
+  late bool isActive;
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    isActive = widget.model.isActive;
+  }
+
+  Future<void> onToggle(bool value) async {
+    setState(() {
+      loading = true;
+      isActive = value;
+    });
+
+    final error = await toggleQuestionnaire(
+      questionnaireId: widget.model.id,
+      turnOn: value,
+    );
+
+    setState(() {
+      loading = false;
+    });
+
+    if (error != null) {
+      setState(() {
+        isActive = !value;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    } else {
+      widget.model.isActive = value;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -178,138 +239,81 @@ class QuestionnaireCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// TITLE + QUESTIONS
+            /// TITLE
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    title,
+                    widget.model.type,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Questions',
-                        style: TextStyle(fontSize: 12, color: Colors.green),
+                Column(
+                  children: [
+                    const Text("Questions", style: TextStyle(fontSize: 12)),
+                    Text(
+                      widget.model.questionCount.toString(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
                       ),
-                      Text(
-                        questions.toString(),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
 
             const SizedBox(height: 8),
 
-            /// TAGS
+            /// TOGGLE
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _chip(tag, tagColor),
-                const SizedBox(width: 8),
-                _chip('Active', Colors.green),
+                Text(
+                  isActive ? "Active" : "Inactive",
+                  style: TextStyle(
+                    color: isActive ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                loading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Switch(
+                        value: isActive,
+                        onChanged: onToggle,
+                        activeColor: Colors.green,
+                      ),
               ],
             ),
 
             const SizedBox(height: 10),
 
-            /// DATES
-            // Row(
-            //   children: [
-            //     const Icon(Icons.calendar_today,
-            //         size: 14, color: Colors.grey),
-            //     const SizedBox(width: 4),
-            //     Text(
-            //       'Start: $startDate',
-            //       style: const TextStyle(fontSize: 12, color: Colors.grey),
-            //     ),
-            //     const SizedBox(width: 12),
-            //     Text(
-            //       'End: $endDate',
-            //       style: const TextStyle(fontSize: 12, color: Colors.grey),
-            //     ),
-            //   ],
-            // ),
-            const SizedBox(height: 12),
-
-            /// BUTTONS
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
+            /// EDIT BUTTON
+            OutlinedButton.icon(
+              onPressed: isActive
+                  ? () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => EditQuestionnaireScreen(
-                            questionnaire: QuestionnaireModel(
-                              title: title,
-                              type: tag,
-                              questionsCount: questions,
-                              questions: List.generate(
-                                questions,
-                                (index) =>
-                                    'Sample question ${index + 1} for $title',
-                              ),
-                            ),
+                          builder: (context) => EditQuestionnaireScreen(
+                            questionnaireId: widget.model.id,
                           ),
                         ),
                       );
-                    },
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit'),
-                  ),
-                ),
-                // const SizedBox(width: 10),
-                // Expanded(
-                //   child: OutlinedButton.icon(
-                //     onPressed: () {},
-                //     icon: const Icon(Icons.calendar_month, size: 16),
-                //     label: const Text('Set Dates'),
-                //   ),
-                // ),
-              ],
+                    }
+                  : null,
+              icon: const Icon(Icons.edit),
+              label: const Text("Edit"),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _chip(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

@@ -1,13 +1,22 @@
 class QuestionnaireModel {
-  final String title;
+  final int id;
   final String type;
   final int questionsCount;
-  final List<String> questions;
+  bool isActive; // derived from flag
 
   QuestionnaireModel({
-    required this.title,
+    required this.id,
     required this.type,
     required this.questionsCount,
-    required this.questions,
+    required this.isActive,
   });
+
+  factory QuestionnaireModel.fromJson(Map<String, dynamic> json) {
+    return QuestionnaireModel(
+      id: json['Id'],
+      type: json['Type'],
+      questionsCount: json['QuestionCount'],
+      isActive: json['Flag'] == "1",
+    );
+  }
 }
