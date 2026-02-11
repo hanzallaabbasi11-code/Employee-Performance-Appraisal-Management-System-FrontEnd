@@ -164,7 +164,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                     icon: Icons.calendar_today,
                     label: 'Class Held Report',
                     description: 'View your CHR status',
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.purple,
                     onPressed: () {
                          Navigator.push(
                             context,
@@ -181,7 +181,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                     icon: Icons.assignment_turned_in,
                     label: 'Course Management Evaluation',
                     description: 'View HOD Evaluations',
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.orange,
                     onPressed: () {
                          Navigator.push(
                             context,
@@ -196,7 +196,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                     icon: Icons.group,
                     label: 'Evaluate Society Mentors',
                     description: 'Evaluate Your Society Mentors',
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.teal,
                     onPressed: () {
                          Navigator.push(
                             context,
