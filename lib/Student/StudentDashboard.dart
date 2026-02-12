@@ -1,3 +1,4 @@
+import 'package:epams/Student/EvaluationForm.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 
@@ -115,7 +116,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
                             foregroundColor:
                                 Colors.white, // sets text and icon color
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(context,
+                            MaterialPageRoute(builder: (context)=> Evaluationform()));
+                          },
                           child: Text(
                             'Evaluate',
                           ),

@@ -1,2 +1,2 @@
-final Url='http://192.168.0.100/EPAMS/api'; 
+final Url='http://192.168.31.168/EPAMS/api'; 
     

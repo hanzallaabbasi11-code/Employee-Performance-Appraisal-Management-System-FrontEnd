@@ -144,6 +144,7 @@ class _MakequestionerState extends State<Makequestioner> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const SizedBox(width: 5,),
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
@@ -159,7 +160,7 @@ class _MakequestionerState extends State<Makequestioner> {
                             },
                             child: const Text(
                               "+ Create New",
-                              style: TextStyle(color: Colors.green,fontSize:13),
+                              style: TextStyle(color: Colors.green,fontSize:12),
                             ),
                           ),
                         ),
