@@ -1,5 +1,9 @@
 //import 'package:epams/HODDashboard.dart';
+import 'dart:convert';
+
+import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class AddKpiScreen extends StatefulWidget {
   const AddKpiScreen({super.key});
@@ -17,6 +21,37 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
 
   String? selectedCategory;
   bool showSubKpiForm = false;
+
+  Future<bool> saveKpiToDatabase() async {
+    final url = Uri.parse('$Url/kpi/create-with-weight');
+
+    // 🔥 Convert category string to EmployeeTypeId
+    // Replace with your real mapping from API
+    int employeeTypeId = categoryList.indexOf(selectedCategory!) + 1;
+
+    final body = {
+      "KPIName": kpiNameController.text,
+      "EmployeeTypeId": employeeTypeId,
+      "SessionId": 1, // 🔥 replace with selected session
+      "RequestedKPIWeight": int.parse(kpiWeightController.text),
+      "SubKPIs": tempSubKpis.map((sub) {
+        return {"Name": sub['name'], "Weight": int.parse(sub['weight']!)};
+      }).toList(),
+    };
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print(response.body);
+      return false;
+    }
+  }
 
   List<String> categoryList = [
     'Teacher',
@@ -41,7 +76,6 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               /// HEADER
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -59,9 +93,7 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
               ),
 
               const SizedBox(height: 10),
-              const Text(
-                'Define KPIs and sub-KPIs for each category type.',
-              ),
+              const Text('Define KPIs and sub-KPIs for each category type.'),
 
               const SizedBox(height: 16),
 
@@ -75,10 +107,12 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const Text(
                       'Create New KPI',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
 
                     const SizedBox(height: 16),
@@ -88,8 +122,9 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
                       initialValue: selectedCategory,
                       hint: const Text('Select category type'),
                       items: categoryList
-                          .map((e) =>
-                              DropdownMenuItem(value: e, child: Text(e)))
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
                           .toList(),
                       onChanged: (val) =>
                           setState(() => selectedCategory = val),
@@ -101,8 +136,9 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
                     /// KPI NAME
                     TextField(
                       controller: kpiNameController,
-                      decoration:
-                          _inputDecoration(hint: 'e.g., Academics, Society'),
+                      decoration: _inputDecoration(
+                        hint: 'e.g., Academics, Society',
+                      ),
                     ),
 
                     const SizedBox(height: 12),
@@ -136,8 +172,7 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
 
                       TextField(
                         controller: subKpiNameController,
-                        decoration:
-                            _inputDecoration(hint: 'Sub-KPI Name'),
+                        decoration: _inputDecoration(hint: 'Sub-KPI Name'),
                       ),
 
                       const SizedBox(height: 12),
@@ -145,8 +180,7 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
                       TextField(
                         controller: subKpiWeightController,
                         keyboardType: TextInputType.number,
-                        decoration:
-                            _inputDecoration(hint: 'Sub-KPI Weight'),
+                        decoration: _inputDecoration(hint: 'Sub-KPI Weight'),
                       ),
 
                       const SizedBox(height: 12),
@@ -189,30 +223,50 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green.shade700,
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           if (selectedCategory == null ||
                               kpiNameController.text.isEmpty ||
                               kpiWeightController.text.isEmpty ||
                               tempSubKpis.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Please complete all fields"),
+                              ),
+                            );
                             return;
                           }
 
-                          addedKpis.add({
-                            'category': selectedCategory,
-                            'name': kpiNameController.text,
-                            'weight': kpiWeightController.text,
-                            'subKpis': List.from(tempSubKpis),
-                          });
+                          bool success = await saveKpiToDatabase();
 
-                          // Reset form
-                          selectedCategory = null;
-                          kpiNameController.clear();
-                          kpiWeightController.clear();
-                          tempSubKpis.clear();
-                          showSubKpiForm = false;
+                          if (success) {
+                            addedKpis.add({
+                              'category': selectedCategory,
+                              'name': kpiNameController.text,
+                              'weight': kpiWeightController.text,
+                              'subKpis': List.from(tempSubKpis),
+                            });
 
-                          setState(() {});
+                            // Reset form
+                            selectedCategory = null;
+                            kpiNameController.clear();
+                            kpiWeightController.clear();
+                            tempSubKpis.clear();
+                            showSubKpiForm = false;
+
+                            setState(() {});
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("KPI Saved Successfully"),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Error saving KPI")),
+                            );
+                          }
                         },
+
                         child: const Text('Save KPI'),
                       ),
                     ],
@@ -235,12 +289,15 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
                   child: ExpansionTile(
                     title: Text(kpi['name']),
                     subtitle: Text(
-                        '${kpi['category']} • Weight: ${kpi['weight']}%'),
+                      '${kpi['category']} • Weight: ${kpi['weight']}%',
+                    ),
                     children: (kpi['subKpis'] as List)
-                        .map<Widget>((sub) => ListTile(
-                              title: Text(sub['name']),
-                              trailing: Text('${sub['weight']}%'),
-                            ))
+                        .map<Widget>(
+                          (sub) => ListTile(
+                            title: Text(sub['name']),
+                            trailing: Text('${sub['weight']}%'),
+                          ),
+                        )
                         .toList(),
                   ),
                 ),
@@ -264,4 +321,3 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
     );
   }
 }
-

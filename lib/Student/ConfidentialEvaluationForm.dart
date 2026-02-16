@@ -1,25 +1,25 @@
 import 'package:epams/Teacher/QuestionnaireModel.dart';
 import 'package:flutter/material.dart';
 
-class Evaluationform extends StatefulWidget {
+class Confidentialevaluationform extends StatefulWidget {
   final String courseCode;
   final String courseName;
   final String teacherName;
   final QuestionnaireModel questionnaire; // Pass active questionnaire
 
-  const Evaluationform({
+  const Confidentialevaluationform({
     super.key,
     required this.courseCode,
     required this.courseName,
     required this.teacherName,
-    required this.questionnaire,
+    required this.questionnaire, required String studentId,
   });
 
   @override
-  State<Evaluationform> createState() => _EvaluationformState();
+  State<Confidentialevaluationform> createState() => _ConfidentialevaluationformState();
 }
 
-class _EvaluationformState extends State<Evaluationform> {
+class _ConfidentialevaluationformState extends State<Confidentialevaluationform> {
   Map<int, String> selectedAnswers = {};
   final List<String> options = ["Excellent", "Good", "Average", "Poor"];
 

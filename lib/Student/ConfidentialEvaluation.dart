@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:epams/Student/EvaluationForm.dart';
-import 'package:epams/Student/ConfidentialEvaluation.dart';
+import 'package:epams/Student/ConfidentialEvaluationForm.dart';
+//import 'package:epams/Student/EvaluationForm.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -8,16 +8,16 @@ import 'package:http/http.dart' as http;
 import '../Teacher/QuestionnaireModel.dart' show QuestionnaireModel;
 import '../Url.dart';
 
-class Studentdashboard extends StatefulWidget {
-  final String studentId; // Logged-in student ID
+class Confidentialevaluation extends StatefulWidget {
+  final String studentId; // Pass logged-in student ID
 
-  const Studentdashboard({super.key, required this.studentId});
+  const Confidentialevaluation({super.key, required this.studentId});
 
   @override
-  State<Studentdashboard> createState() => _StudentdashboardState();
+  State<Confidentialevaluation> createState() => _ConfidentialevaluationState();
 }
 
-class _StudentdashboardState extends State<Studentdashboard> {
+class _ConfidentialevaluationState extends State<Confidentialevaluation> {
   bool isLoadingCourses = true;
   bool isLoadingQuestionnaire = true;
 
@@ -54,11 +54,11 @@ class _StudentdashboardState extends State<Studentdashboard> {
     }
   }
 
-  // Fetch active teacher questionnaire
+  // Fetch active confidential evaluation questionnaire
   Future<void> fetchActiveQuestionnaire() async {
     try {
       final response = await http.get(
-        Uri.parse("$Url/Student/GetActiveQuestionnaire?type=Teacher Evaluation"),
+        Uri.parse("$Url/Student/GetActiveQuestionnaire?type=Confidential Evaluation"),
       );
 
       if (response.statusCode == 200) {
@@ -124,7 +124,8 @@ class _StudentdashboardState extends State<Studentdashboard> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => Evaluationform(
+                          builder: (context) => Confidentialevaluationform(
+                            studentId: widget.studentId,
                             courseCode: course.courseCode,
                             courseName: course.courseTitle,
                             teacherName: course.teacherName,
@@ -169,40 +170,18 @@ class _StudentdashboardState extends State<Studentdashboard> {
                             style: TextStyle(fontSize: 12),
                           ),
                           const Spacer(),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                            ),
-                            onPressed: () {
-                              // Pass studentId to Confidential Evaluation
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => Confidentialevaluation(
-                                      studentId: widget.studentId),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'Confidential Evaluation',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF0A8F3C),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
 
                       const SizedBox(height: 24),
                       const Text(
-                        'Teacher Evaluation',
+                        'Confidential Teacher Evaluation',
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Review and evaluate your courses for the current semester',
+                        'Evaluate your courses confidentially for the current semester',
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 15),
@@ -225,8 +204,7 @@ class _StudentdashboardState extends State<Studentdashboard> {
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
                             side: const BorderSide(color: Colors.red),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

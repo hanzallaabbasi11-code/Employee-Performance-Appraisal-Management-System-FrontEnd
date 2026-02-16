@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'package:epams/Teacher/ClassHeldReport.dart';
 import 'package:epams/Teacher/CourseManagmentEvaluation.dart';
 import 'package:epams/Teacher/EvaluateSocietyMentors.dart';
 import 'package:epams/Teacher/Kpidatamodel.dart';
+import 'package:epams/Teacher/PeerEvaluation.dart';
 import 'package:epams/Teacher/TeacherSeePerformance.dart';
+import 'package:epams/Url.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
-// import 'package:syncfusion_flutter_charts/charts.dart';
-// import 'package:syncfusion_flutter_charts/sparkcharts.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class Teacherdashboard extends StatefulWidget {
@@ -18,6 +21,51 @@ class Teacherdashboard extends StatefulWidget {
 }
 
 class TeacherdashboardState extends State<Teacherdashboard> {
+  bool isPeerActive = false;
+  bool isChecking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    checkPeerEvaluationStatus();
+  }
+
+  Future<void> checkPeerEvaluationStatus() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$Url/TeacherDashboard/GetActiveQuestionnaire"),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data["Flag"] != null &&
+            data["Flag"].toString() == "1" &&
+            data["Type"] != null &&
+            data["Type"].toString().toLowerCase() == "peer evaluation") {
+          setState(() {
+            isPeerActive = true;
+            isChecking = false;
+          });
+        } else {
+          setState(() {
+            isPeerActive = false;
+            isChecking = false;
+          });
+        }
+      } else {
+        setState(() {
+          isChecking = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isChecking = false;
+      });
+      print("Error checking peer status: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,13 +101,28 @@ class TeacherdashboardState extends State<Teacherdashboard> {
               ),
 
               const SizedBox(height: 15),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
-                ),
-                onPressed: () {},
-                child: Text('Peer Evaluation', style: TextStyle(fontSize: 18)),
-              ),
+              // isChecking
+              //     ? CircularProgressIndicator()
+              //     : 
+                   ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      onPressed: isPeerActive
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const Peerevaluation(),
+                                ),
+                              );
+                            }
+                          : null, // 👈 disables button
+                      child: const Text(
+                        'Peer Evaluation',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
 
               const SizedBox(height: 15),
 
@@ -119,7 +182,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                               //KpiData("Coordination", 95),
                               KpiData("CHR", 96),
                               KpiData("Society", 78),
-                             // KpiData("Admin", 88),
+                              // KpiData("Admin", 88),
                             ],
                             xValueMapper: (KpiData data, _) => data.category,
                             yValueMapper: (KpiData data, _) => data.score,
@@ -155,74 +218,78 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                 ),
               ),
 
-               SizedBox(height: 20),
-               Text('Quick Actions'),
+              SizedBox(height: 20),
+              Text('Quick Actions'),
 
-               SizedBox(height: 20),
+              SizedBox(height: 20),
 
-                buildManageButton(
-                    icon: Icons.calendar_today,
-                    label: 'Class Held Report',
-                    description: 'View your CHR status',
-                    backgroundColor: Colors.purple,
-                    onPressed: () {
-                         Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => Classheldreport(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
+              buildManageButton(
+                icon: Icons.calendar_today,
+                label: 'Class Held Report',
+                description: 'View your CHR status',
+                backgroundColor: Colors.purple,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          Classheldreport(), // your target screen
+                    ),
+                  );
+                },
+              ),
 
-                  SizedBox(height: 15),
+              SizedBox(height: 15),
 
-                  buildManageButton(
-                    icon: Icons.assignment_turned_in,
-                    label: 'Course Management Evaluation',
-                    description: 'View HOD Evaluations',
-                    backgroundColor: Colors.orange,
-                    onPressed: () {
-                         Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => Coursemanagmentevaluation(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-                    SizedBox(height: 15),
-                  buildManageButton(
-                    icon: Icons.group,
-                    label: 'Evaluate Society Mentors',
-                    description: 'Evaluate Your Society Mentors',
-                    backgroundColor: Colors.teal,
-                    onPressed: () {
-                         Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => Evaluatesocietymentors(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-                    SizedBox(height: 15),
-                   buildManageButton(
-                    icon: Icons.bar_chart,
-                    label: 'See Performance',
-                    description: 'See Your Overall Performance',
-                    backgroundColor: Colors.green,
-                    onPressed: () {
-                         Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => Teacherseeperformance(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
+              buildManageButton(
+                icon: Icons.assignment_turned_in,
+                label: 'Course Management Evaluation',
+                description: 'View HOD Evaluations',
+                backgroundColor: Colors.orange,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          Coursemanagmentevaluation(), // your target screen
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: 15),
+              buildManageButton(
+                icon: Icons.group,
+                label: 'Evaluate Society Mentors',
+                description: 'Evaluate Your Society Mentors',
+                backgroundColor: Colors.teal,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          Evaluatesocietymentors(), // your target screen
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: 15),
+              buildManageButton(
+                icon: Icons.bar_chart,
+                label: 'See Performance',
+                description: 'See Your Overall Performance',
+                backgroundColor: Colors.green,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          Teacherseeperformance(), // your target screen
+                    ),
+                  );
+                },
+              ),
 
-                  const SizedBox(height: 15),
+              const SizedBox(height: 15),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -245,8 +312,6 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   ),
                 ),
               ),
-
-
             ],
           ),
         ),

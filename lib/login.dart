@@ -34,6 +34,7 @@ class _LoginState extends State<Login> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final String role = data['role'];
+      final String userid=data['userId'];
 
       Widget nextScreen;
 
@@ -45,7 +46,7 @@ class _LoginState extends State<Login> {
           nextScreen = Teacherdashboard();
           break;
         case 'Student':
-          nextScreen = const StudentDashboard();
+          nextScreen =  Studentdashboard(studentId: userid);
           break;
         case 'Director':
           nextScreen = const Directordashboard();
