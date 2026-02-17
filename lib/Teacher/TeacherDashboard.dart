@@ -9,12 +9,12 @@ import 'package:epams/Url.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class Teacherdashboard extends StatefulWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  Teacherdashboard({Key? key}) : super(key: key);
+  final String teacherID; // Logged-in teacher ID
+
+  const Teacherdashboard({super.key, required this.teacherID});
 
   @override
   TeacherdashboardState createState() => TeacherdashboardState();
@@ -23,46 +23,83 @@ class Teacherdashboard extends StatefulWidget {
 class TeacherdashboardState extends State<Teacherdashboard> {
   bool isPeerActive = false;
   bool isChecking = true;
+  String teacherName = "";
+  int? _evaluatorID; // fetched evaluator ID
 
   @override
   void initState() {
     super.initState();
+    fetchTeacherName();
     checkPeerEvaluationStatus();
+  }
+
+  Future<void> fetchTeacherName() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$Url/TeacherDashboard/GetTeacherName/${widget.teacherID}"),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          teacherName = response.body.replaceAll('"', '');
+        });
+      } else {
+        setState(() {
+          teacherName = "Teacher";
+        });
+      }
+    } catch (e) {
+      print("Error fetching teacher name: $e");
+      setState(() {
+        teacherName = "Teacher";
+      });
+    }
   }
 
   Future<void> checkPeerEvaluationStatus() async {
     try {
-      final response = await http.get(
+      bool questionnaireActive = false;
+      int? evaluatorID;
+
+      // 1️⃣ Check Active Questionnaire
+      final questionnaireResponse = await http.get(
         Uri.parse("$Url/TeacherDashboard/GetActiveQuestionnaire"),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
+      if (questionnaireResponse.statusCode == 200) {
+        final data = jsonDecode(questionnaireResponse.body);
         if (data["Flag"] != null &&
             data["Flag"].toString() == "1" &&
             data["Type"] != null &&
             data["Type"].toString().toLowerCase() == "peer evaluation") {
-          setState(() {
-            isPeerActive = true;
-            isChecking = false;
-          });
-        } else {
-          setState(() {
-            isPeerActive = false;
-            isChecking = false;
-          });
+          questionnaireActive = true;
         }
-      } else {
-        setState(() {
-          isChecking = false;
-        });
       }
+
+      // 2️⃣ Get Evaluator ID for logged-in teacher
+      final evaluatorResponse = await http.get(
+        Uri.parse(
+            "$Url/TeacherDashboard/GetPeerEvaluatorID?userId=${widget.teacherID}"),
+      );
+
+      if (evaluatorResponse.statusCode == 200) {
+        final evalData = jsonDecode(evaluatorResponse.body);
+        evaluatorID = evalData["peerEvaluatorID"];
+      }
+
+      // 3️⃣ Final Condition
+      setState(() {
+        isPeerActive = questionnaireActive && evaluatorID != null;
+        isChecking = false;
+        _evaluatorID = evaluatorID;
+      });
     } catch (e) {
       setState(() {
         isChecking = false;
+        isPeerActive = false;
+        _evaluatorID = null;
       });
-      print("Error checking peer status: $e");
+      print("Error checking peer evaluation status: $e");
     }
   }
 
@@ -82,16 +119,17 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Welcome,Mr.Muhammad Ahsan 👏',
-                        style: TextStyle(
+                      Text(
+                        teacherName.isEmpty
+                            ? "Welcome 👏"
+                            : "Welcome, $teacherName 👏",
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       Text(
-                        'Your performnace Overview',
+                        'Your performance Overview',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],
@@ -99,33 +137,32 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Image.asset('assets/images/logo.jpeg', height: 40),
                 ],
               ),
-
-              const SizedBox(height: 15),
-              // isChecking
-              //     ? CircularProgressIndicator()
-              //     : 
-                   ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                      ),
-                      onPressed: isPeerActive
-                          ? () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const Peerevaluation(),
-                                ),
-                              );
-                            }
-                          : null, // 👈 disables button
-                      child: const Text(
-                        'Peer Evaluation',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
-
               const SizedBox(height: 15),
 
+              /// Peer Evaluation Button
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: isPeerActive && _evaluatorID != null
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Peerevaluation(
+                              evaluatorID: _evaluatorID!,
+                            ),
+                          ),
+                        );
+                      }
+                    : null,
+                child: const Text(
+                  'Peer Evaluation',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+
+              const SizedBox(height: 15),
               Container(
                 height: 50,
                 decoration: BoxDecoration(
@@ -139,9 +176,11 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              /// KPI Overview
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
@@ -150,21 +189,19 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       "KPI Metrics Overview",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),
+                    const Text(
                       "Your performance across different KPI categories",
                       style: TextStyle(color: Colors.grey),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                    /// 🔹 Chart
+                    /// Chart
                     SizedBox(
                       height: 250,
                       child: SfCartesianChart(
@@ -179,10 +216,8 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                             dataSource: [
                               KpiData("Peer", 82),
                               KpiData("Student", 90),
-                              //KpiData("Coordination", 95),
                               KpiData("CHR", 96),
                               KpiData("Society", 78),
-                              // KpiData("Admin", 88),
                             ],
                             xValueMapper: (KpiData data, _) => data.category,
                             yValueMapper: (KpiData data, _) => data.score,
@@ -192,13 +227,12 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 20),
 
-                    SizedBox(height: 20),
-
-                    /// 🔹 Overall Score
+                    /// Overall Score
                     Center(
                       child: Column(
-                        children: [
+                        children: const [
                           Text(
                             "89%",
                             style: TextStyle(
@@ -218,10 +252,9 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                 ),
               ),
 
-              SizedBox(height: 20),
-              Text('Quick Actions'),
-
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+              const Text('Quick Actions'),
+              const SizedBox(height: 20),
 
               buildManageButton(
                 icon: Icons.calendar_today,
@@ -232,14 +265,12 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          Classheldreport(), // your target screen
+                      builder: (context) => Classheldreport(),
                     ),
                   );
                 },
               ),
-
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
 
               buildManageButton(
                 icon: Icons.assignment_turned_in,
@@ -250,13 +281,12 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          Coursemanagmentevaluation(), // your target screen
+                      builder: (context) => Coursemanagmentevaluation(),
                     ),
                   );
                 },
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               buildManageButton(
                 icon: Icons.group,
                 label: 'Evaluate Society Mentors',
@@ -266,13 +296,12 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          Evaluatesocietymentors(), // your target screen
+                      builder: (context) => Evaluatesocietymentors(),
                     ),
                   );
                 },
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               buildManageButton(
                 icon: Icons.bar_chart,
                 label: 'See Performance',
@@ -282,14 +311,14 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          Teacherseeperformance(), // your target screen
+                      builder: (context) => Teacherseeperformance(),
                     ),
                   );
                 },
               ),
-
               const SizedBox(height: 15),
+
+              /// Logout
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -323,12 +352,12 @@ class TeacherdashboardState extends State<Teacherdashboard> {
     required IconData icon,
     required String label,
     required String description,
-    required Color backgroundColor, // used ONLY for icon color
+    required Color backgroundColor,
     required VoidCallback onPressed,
   }) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white, // ✅ card-like white
+        backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         shape: RoundedRectangleBorder(
@@ -336,7 +365,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
           side: BorderSide(
             color: Colors.lightGreen,
             width: 1.3,
-          ), // ✅ green border
+          ),
         ),
         elevation: 0,
       ),
@@ -344,8 +373,8 @@ class TeacherdashboardState extends State<Teacherdashboard> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: backgroundColor.withOpacity(0.15), // soft color bg
-            child: Icon(icon, color: backgroundColor), // ✅ original icon color
+            backgroundColor: backgroundColor.withOpacity(0.15),
+            child: Icon(icon, color: backgroundColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -370,7 +399,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
           Icon(
             Icons.arrow_forward_ios,
             size: 16,
-            color: backgroundColor, // ✅ arrow matches icon color
+            color: backgroundColor,
           ),
         ],
       ),

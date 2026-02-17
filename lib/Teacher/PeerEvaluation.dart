@@ -7,51 +7,52 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class Peerevaluation extends StatefulWidget {
-  const Peerevaluation({super.key});
+  final int evaluatorID;
+
+  const Peerevaluation({super.key, required this.evaluatorID});
 
   @override
   State<Peerevaluation> createState() => _PeerevaluationState();
 }
 
 class _PeerevaluationState extends State<Peerevaluation> {
-  //final Questions=List<Question>;
-  //final questionnaire = QuestionnaireModel.fromJson(data);
   List<TeacherModel> teachers = [];
+  Set<String> evaluatedTeachers = {}; // store teacherID-course
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     fetchTeachers();
+    fetchSubmittedEvaluations();
   }
 
   Future<void> fetchTeachers() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$Url/TeacherDashboard/GetTeachersWithCourses'),
-      );
+    final response = await http.get(
+      Uri.parse('$Url/TeacherDashboard/GetTeachersWithCourses'),
+    );
 
-      print("Status Code: ${response.statusCode}");
-      print("Response Body: ${response.body}");
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      teachers = data.map((e) => TeacherModel.fromJson(e)).toList();
+    }
+    setState(() => isLoading = false);
+  }
 
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
+  Future<void> fetchSubmittedEvaluations() async {
+    final response = await http.get(
+      Uri.parse(
+          "$Url/TeacherDashboard/GetSubmittedEvaluations?evaluatorID=${widget.evaluatorID}"),
+    );
 
-        setState(() {
-          teachers = data.map((e) => TeacherModel.fromJson(e)).toList();
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-        print("API Error: ${response.statusCode}");
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+
+      for (var item in data) {
+        evaluatedTeachers
+            .add("${item["TeacherID"]}-${item["CourseCode"]}");
       }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      print("Exception: $e");
+      setState(() {});
     }
   }
 
@@ -61,12 +62,15 @@ class _PeerevaluationState extends State<Peerevaluation> {
       appBar: AppBar(title: const Text("Teacher Evaluation")),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : teachers.isEmpty
-          ? const Center(child: Text("No Teachers Found"))
           : ListView.builder(
               itemCount: teachers.length,
               itemBuilder: (context, index) {
                 final teacher = teachers[index];
+                final key =
+                    "${teacher.teacherID}-${teacher.courses.isNotEmpty ? teacher.courses.first : ""}";
+
+                final alreadyEvaluated =
+                    evaluatedTeachers.contains(key);
 
                 return Card(
                   margin: const EdgeInsets.all(10),
@@ -86,11 +90,51 @@ class _PeerevaluationState extends State<Peerevaluation> {
                         Text("Courses: ${teacher.courses.join(", ")}"),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () {
-                            // Fetch active questionnaire and navigate if available
-                            checkAndLoadQuestionnaire(teacher);
-                          },
-                          child: const Text("Evaluate"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: alreadyEvaluated
+                                ? Colors.grey
+                                : Colors.green,
+                          ),
+                          onPressed: alreadyEvaluated
+                              ? null
+                              : () async {
+                                  final response = await http.get(
+                                    Uri.parse(
+                                        "$Url/TeacherDashboard/GetActiveQuestionnaire"),
+                                  );
+
+                                  if (response.statusCode == 200) {
+                                    final data =
+                                        jsonDecode(response.body);
+
+                                    final questionnaire =
+                                        QuestionnaireModel.fromJson(
+                                            data);
+
+                                    final result =
+                                        await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            Peerevaluationform(
+                                          teacher: teacher,
+                                          questionnaire:
+                                              questionnaire,
+                                          evaluatorID:
+                                              widget.evaluatorID,
+                                        ),
+                                      ),
+                                    );
+
+                                    if (result == true) {
+                                      fetchSubmittedEvaluations();
+                                    }
+                                  }
+                                },
+                          child: Text(
+                              alreadyEvaluated
+                                  ? "Evaluated"
+                                  : "Evaluate"),
                         ),
                       ],
                     ),
@@ -99,42 +143,5 @@ class _PeerevaluationState extends State<Peerevaluation> {
               },
             ),
     );
-  }
-
-  Future<void> checkAndLoadQuestionnaire(TeacherModel teacher) async {
-    try {
-      final response = await http.get(
-        Uri.parse("$Url/TeacherDashboard/GetActiveQuestionnaire"),
-      );
-
-      print("Questionnaire Response: ${response.body}");
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data["Flag"] != null &&
-            data["Flag"].toString() == "1" &&
-            data["Type"] != null &&
-            data["Type"].toString().toLowerCase() == "peer evaluation") {
-          final questionnaire = QuestionnaireModel.fromJson(data);
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => Peerevaluationform(
-                teacher: teacher,
-                questionnaire: questionnaire,
-              ),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("No active teacher questionnaire")),
-          );
-        }
-      }
-    } catch (e) {
-      print("Questionnaire Exception: $e");
-    }
   }
 }

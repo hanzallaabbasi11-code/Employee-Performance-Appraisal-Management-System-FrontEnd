@@ -20,6 +20,7 @@ class Studentdashboard extends StatefulWidget {
 class _StudentdashboardState extends State<Studentdashboard> {
   bool isLoadingCourses = true;
   bool isLoadingQuestionnaire = true;
+   String studentName = "";
 
   List<StudentCourse> courses = [];
   QuestionnaireModel? activeQuestionnaire;
@@ -28,10 +29,29 @@ class _StudentdashboardState extends State<Studentdashboard> {
   void initState() {
     super.initState();
     fetchStudentCourses();
+    fetchStudentName();
     fetchActiveQuestionnaire();
   }
 
   // Fetch courses for the logged-in student
+Future<void> fetchStudentName() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$Url/Student/GetStudentName/${widget.studentId}"),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          studentName = response.body.replaceAll('"', '');
+        });
+      } else {
+         studentName = "Student";
+      }
+    } catch (e) {
+      print("Error fetching student name: $e");
+    }
+  }
+
   Future<void> fetchStudentCourses() async {
     try {
       final response = await http.get(
@@ -164,33 +184,41 @@ class _StudentdashboardState extends State<Studentdashboard> {
                                 'assets/images/student_image.jpeg'),
                           ),
                           const SizedBox(width: 10),
-                          const Text(
-                            'Hanzalla Abbasi\n22-Arid-4088',
-                            style: TextStyle(fontSize: 12),
-                          ),
+                           Expanded(
+                             child: Text(
+                                                     studentName.isEmpty
+                              ? "Welcome 👏"
+                              : "Welcome, $studentName 👏",
+                                                     style: const TextStyle(
+                                                       fontSize: 12,
+                                                       fontWeight: FontWeight.bold,
+                                                     ),
+                                                   ),
+                           ),
                           const Spacer(),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                            ),
-                            onPressed: () {
-                              // Pass studentId to Confidential Evaluation
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => Confidentialevaluation(
-                                      studentId: widget.studentId),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                              ),
+                              onPressed: () {
+                                // Pass studentId to Confidential Evaluation
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => Confidentialevaluation(
+                                        studentId: widget.studentId),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'Confidential Evaluation',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF0A8F3C),
                                 ),
-                              );
-                            },
-                            child: const Text(
-                              'Confidential Evaluation',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF0A8F3C),
                               ),
                             ),
-                          ),
+                          
                         ],
                       ),
 

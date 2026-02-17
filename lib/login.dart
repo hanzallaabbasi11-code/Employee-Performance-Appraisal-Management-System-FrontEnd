@@ -43,7 +43,7 @@ class _LoginState extends State<Login> {
           nextScreen = const HodDashboard();
           break;
         case 'Teacher':
-          nextScreen = Teacherdashboard();
+          nextScreen = Teacherdashboard(teacherID: userid);
           break;
         case 'Student':
           nextScreen =  Studentdashboard(studentId: userid);
