@@ -9,7 +9,7 @@ import '../Teacher/QuestionnaireModel.dart' show QuestionnaireModel;
 import '../Url.dart';
 
 class Studentdashboard extends StatefulWidget {
-  final String studentId; // Logged-in student ID
+  final String studentId;
 
   const Studentdashboard({super.key, required this.studentId});
 
@@ -20,10 +20,13 @@ class Studentdashboard extends StatefulWidget {
 class _StudentdashboardState extends State<Studentdashboard> {
   bool isLoadingCourses = true;
   bool isLoadingQuestionnaire = true;
-   String studentName = "";
+
+  String studentName = "";
 
   List<StudentCourse> courses = [];
   QuestionnaireModel? activeQuestionnaire;
+
+  List<int> evaluatedEnrollments = []; // ✅ Track evaluated courses
 
   @override
   void initState() {
@@ -31,10 +34,13 @@ class _StudentdashboardState extends State<Studentdashboard> {
     fetchStudentCourses();
     fetchStudentName();
     fetchActiveQuestionnaire();
+    fetchSubmittedEvaluations(); // ✅ Load evaluated courses
   }
 
-  // Fetch courses for the logged-in student
-Future<void> fetchStudentName() async {
+  /// ===============================
+  /// Fetch Student Name
+  /// ===============================
+  Future<void> fetchStudentName() async {
     try {
       final response = await http.get(
         Uri.parse("$Url/Student/GetStudentName/${widget.studentId}"),
@@ -45,13 +51,16 @@ Future<void> fetchStudentName() async {
           studentName = response.body.replaceAll('"', '');
         });
       } else {
-         studentName = "Student";
+        studentName = "Student";
       }
     } catch (e) {
       print("Error fetching student name: $e");
     }
   }
 
+  /// ===============================
+  /// Fetch Student Courses
+  /// ===============================
   Future<void> fetchStudentCourses() async {
     try {
       final response = await http.get(
@@ -60,6 +69,7 @@ Future<void> fetchStudentName() async {
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
+
         setState(() {
           courses = data.map((e) => StudentCourse.fromJson(e)).toList();
           isLoadingCourses = false;
@@ -74,11 +84,14 @@ Future<void> fetchStudentName() async {
     }
   }
 
-  // Fetch active teacher questionnaire
+  /// ===============================
+  /// Fetch Active Questionnaire
+  /// ===============================
   Future<void> fetchActiveQuestionnaire() async {
     try {
       final response = await http.get(
-        Uri.parse("$Url/Student/GetActiveQuestionnaire?type=Teacher Evaluation"),
+        Uri.parse(
+            "$Url/Student/GetActiveQuestionnaire?type=Teacher Evaluation"),
       );
 
       if (response.statusCode == 200) {
@@ -104,7 +117,35 @@ Future<void> fetchStudentName() async {
     }
   }
 
+  /// ===============================
+  /// Fetch Submitted Evaluations
+  /// ===============================
+  Future<void> fetchSubmittedEvaluations() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            "$Url/Student/GetSubmittedStudentEvaluations/${widget.studentId}"),
+      );
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+
+        setState(() {
+          evaluatedEnrollments = data.cast<int>();
+        });
+      }
+    } catch (e) {
+      print("Error fetching submitted evaluations: $e");
+    }
+  }
+
+  /// ===============================
+  /// Course Card Widget
+  /// ===============================
   Widget buildCourseCard(StudentCourse course) {
+    bool isEvaluated =
+        evaluatedEnrollments.contains(course.enrollmentID);
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 20),
@@ -117,7 +158,8 @@ Future<void> fetchStudentName() async {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Course Code + Semester
+
+          /// Course Code + Session
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -127,21 +169,28 @@ Future<void> fetchStudentName() async {
                   style: const TextStyle(color: Colors.grey)),
             ],
           ),
+
           const SizedBox(height: 6),
+
           Text(course.courseTitle),
           Text(course.teacherName),
+
           const SizedBox(height: 20),
+
           Center(
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: activeQuestionnaire != null
-                    ? Colors.green
-                    : Colors.grey,
+                backgroundColor: isEvaluated
+                    ? Colors.grey
+                    : (activeQuestionnaire != null
+                        ? Colors.green
+                        : Colors.grey),
                 foregroundColor: Colors.white,
               ),
-              onPressed: activeQuestionnaire != null
-                  ? () {
-                      Navigator.push(
+              onPressed: (!isEvaluated &&
+                      activeQuestionnaire != null)
+                  ? () async {
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => Evaluationform(
@@ -149,12 +198,19 @@ Future<void> fetchStudentName() async {
                             courseName: course.courseTitle,
                             teacherName: course.teacherName,
                             questionnaire: activeQuestionnaire!,
+                            studentId: widget.studentId,
+                            enrollmentID: course.enrollmentID,
                           ),
                         ),
                       );
+
+                      if (result == true) {
+                        fetchSubmittedEvaluations(); // refresh list
+                      }
                     }
                   : null,
-              child: const Text('Evaluate'),
+              child: Text(
+                  isEvaluated ? "Evaluated" : "Evaluate"),
             ),
           ),
         ],
@@ -162,6 +218,9 @@ Future<void> fetchStudentName() async {
     );
   }
 
+  /// ===============================
+  /// UI
+  /// ===============================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,103 +229,123 @@ Future<void> fetchStudentName() async {
         child: isLoadingCourses
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      /// Top Profile Row
-                      Row(
-                        children: [
-                          const CircleAvatar(
-                            radius: 18,
-                            backgroundImage: AssetImage(
-                                'assets/images/student_image.jpeg'),
-                          ),
-                          const SizedBox(width: 10),
-                           Expanded(
-                             child: Text(
-                                                     studentName.isEmpty
-                              ? "Welcome 👏"
-                              : "Welcome, $studentName 👏",
-                                                     style: const TextStyle(
-                                                       fontSize: 12,
-                                                       fontWeight: FontWeight.bold,
-                                                     ),
-                                                   ),
-                           ),
-                          const Spacer(),
-                          ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                              ),
-                              onPressed: () {
-                                // Pass studentId to Confidential Evaluation
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Confidentialevaluation(
-                                        studentId: widget.studentId),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                'Confidential Evaluation',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF0A8F3C),
-                                ),
-                              ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+
+                    /// Profile Row
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 18,
+                          backgroundImage: AssetImage(
+                              'assets/images/student_image.jpeg'),
+                        ),
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: Text(
+                            studentName.isEmpty
+                                ? "Welcome 👏"
+                                : "Welcome, $studentName 👏",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
-                          
-                        ],
-                      ),
+                          ),
+                        ),
 
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Teacher Evaluation',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Review and evaluate your courses for the current semester',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 15),
+                        const Spacer(),
 
-                      // Courses List
-                      ...courses.map((course) => buildCourseCard(course)),
-
-                      /// Logout Button
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                          ),
                           onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const Login()),
+                                builder: (context) =>
+                                    Confidentialevaluation(
+                                  studentId:
+                                      widget.studentId,
+                                ),
+                              ),
                             );
                           },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          child: const Text(
+                            'Confidential Evaluation',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF0A8F3C),
                             ),
                           ),
-                          child: const Text(
-                            "Logout",
-                            style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    const Text(
+                      'Teacher Evaluation',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    const Text(
+                      'Review and evaluate your courses for the current semester',
+                      style:
+                          TextStyle(color: Colors.grey),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    /// Course List
+                    ...courses
+                        .map((course) =>
+                            buildCourseCard(course)),
+
+                    const SizedBox(height: 20),
+
+                    /// Logout Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const Login()),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(
+                              color: Colors.red),
+                          padding:
+                              const EdgeInsets.symmetric(
+                                  vertical: 14),
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(
+                                    12),
                           ),
                         ),
+                        child: const Text(
+                          "Logout",
+                          style:
+                              TextStyle(fontSize: 16),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
       ),
@@ -274,7 +353,9 @@ Future<void> fetchStudentName() async {
   }
 }
 
-/// Model for student courses
+/// ===============================
+/// Student Course Model
+/// ===============================
 class StudentCourse {
   final int enrollmentID;
   final String courseCode;
@@ -290,7 +371,8 @@ class StudentCourse {
     required this.sessionName,
   });
 
-  factory StudentCourse.fromJson(Map<String, dynamic> json) {
+  factory StudentCourse.fromJson(
+      Map<String, dynamic> json) {
     return StudentCourse(
       enrollmentID: json['EnrollmentID'],
       courseCode: json['CourseCode'] ?? '',

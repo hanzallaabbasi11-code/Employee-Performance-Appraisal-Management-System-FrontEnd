@@ -1,11 +1,16 @@
+import 'dart:convert';
 import 'package:epams/Teacher/QuestionnaireModel.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../Url.dart';
 
 class Evaluationform extends StatefulWidget {
   final String courseCode;
   final String courseName;
   final String teacherName;
-  final QuestionnaireModel questionnaire; // Pass active questionnaire
+  final QuestionnaireModel questionnaire;
+  final String studentId;
+  final int enrollmentID;
 
   const Evaluationform({
     super.key,
@@ -13,6 +18,8 @@ class Evaluationform extends StatefulWidget {
     required this.courseName,
     required this.teacherName,
     required this.questionnaire,
+    required this.studentId,
+    required this.enrollmentID,
   });
 
   @override
@@ -21,11 +28,101 @@ class Evaluationform extends StatefulWidget {
 
 class _EvaluationformState extends State<Evaluationform> {
   Map<int, String> selectedAnswers = {};
-  final List<String> options = ["Excellent", "Good", "Average", "Poor"];
+
+  final Map<String, int> scoreMap = {
+    "Excellent": 4,
+    "Good": 3,
+    "Average": 2,
+    "Poor": 1,
+  };
+
+  final List<String> options = [
+    "Excellent",
+    "Good",
+    "Average",
+    "Poor",
+  ];
+
+  bool isSubmitting = false;
+
+  /// ===========================================
+  /// Submit Student Evaluation (Separated Method)
+  /// ===========================================
+  Future<bool> submitStudentEvaluation() async {
+  final questions = widget.questionnaire.questions;
+
+  if (selectedAnswers.length != questions.length) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please answer all questions")),
+    );
+    return false;
+  }
+
+  setState(() => isSubmitting = true);
+
+  try {
+    List<Map<String, dynamic>> evaluationList = [];
+
+    for (int i = 0; i < questions.length; i++) {
+      evaluationList.add({
+        "enrollmentID": widget.enrollmentID,
+        "questionID": questions[i].questionID,
+        "score": scoreMap[selectedAnswers[i]],
+        "StudentId": widget.studentId
+      });
+    }
+
+    print("Submitting Data:");
+    print(jsonEncode(evaluationList));
+
+    final response = await http.post(
+      Uri.parse("$Url/Student/SubmitStudentEvaluation"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(evaluationList),
+    );
+
+    print("Status Code: ${response.statusCode}");
+    print("Response Body: ${response.body}");
+
+    setState(() => isSubmitting = false);
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Evaluation Submitted Successfully")),
+      );
+      return true;
+    } else {
+      // 👇 Show actual backend message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Error ${response.statusCode}: ${response.body}",
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return false;
+    }
+  } catch (e) {
+    setState(() => isSubmitting = false);
+
+    print("Exception: $e");
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Exception: $e"),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+
+    return false;
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
-    final questions = widget.questionnaire.questions; // Use API questions
+    final questions = widget.questionnaire.questions;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7FFF9),
@@ -36,7 +133,7 @@ class _EvaluationformState extends State<Evaluationform> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              /// 🔹 Back Row
+              /// Back Row
               Row(
                 children: [
                   IconButton(
@@ -52,7 +149,7 @@ class _EvaluationformState extends State<Evaluationform> {
 
               const SizedBox(height: 15),
 
-              /// 🔹 Course Info Card
+              /// Course Info Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -64,7 +161,6 @@ class _EvaluationformState extends State<Evaluationform> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    /// Course Code Badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
@@ -95,9 +191,7 @@ class _EvaluationformState extends State<Evaluationform> {
 
                     Text(
                       "Instructor: ${widget.teacherName}",
-                      style: const TextStyle(
-                        color: Colors.white70,
-                      ),
+                      style: const TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
@@ -105,18 +199,14 @@ class _EvaluationformState extends State<Evaluationform> {
 
               const SizedBox(height: 25),
 
-              /// 🔹 Title Above Questions
               const Text(
                 "Evaluation Questions",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 15),
 
-              /// 🔹 Questions List
+              /// Questions List
               ListView.builder(
                 itemCount: questions.length,
                 shrinkWrap: true,
@@ -136,17 +226,13 @@ class _EvaluationformState extends State<Evaluationform> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
 
-                        /// Question Text
                         Text(
                           "${index + 1}. ${question.questionText}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
 
                         const SizedBox(height: 12),
 
-                        /// Options
                         Wrap(
                           spacing: 10,
                           runSpacing: 10,
@@ -162,16 +248,22 @@ class _EvaluationformState extends State<Evaluationform> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? Colors.green.shade50 : Colors.grey.shade100,
+                                  color: isSelected
+                                      ? Colors.green.shade50
+                                      : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: isSelected ? Colors.green : Colors.grey.shade300,
+                                    color: isSelected
+                                        ? Colors.green
+                                        : Colors.grey.shade300,
                                   ),
                                 ),
                                 child: Text(
                                   option,
                                   style: TextStyle(
-                                    color: isSelected ? Colors.green : Colors.black,
+                                    color: isSelected
+                                        ? Colors.green
+                                        : Colors.black,
                                   ),
                                 ),
                               ),
@@ -186,7 +278,7 @@ class _EvaluationformState extends State<Evaluationform> {
 
               const SizedBox(height: 20),
 
-              /// 🔹 Submit Button
+              /// Submit Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -194,30 +286,21 @@ class _EvaluationformState extends State<Evaluationform> {
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: () {
-                    if (selectedAnswers.length != questions.length) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Please answer all questions"),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          bool success = await submitStudentEvaluation();
+
+                          if (success) {
+                            Navigator.pop(context, true);
+                          }
+                        },
+                  child: isSubmitting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Submit Evaluation",
+                          style: TextStyle(fontSize: 16),
                         ),
-                      );
-                      return;
-                    }
-
-                    // TODO: Call API to save evaluation here
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Evaluation Submitted Successfully"),
-                      ),
-                    );
-
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    "Submit Evaluation",
-                    style: TextStyle(fontSize: 16),
-                  ),
                 ),
               ),
 
