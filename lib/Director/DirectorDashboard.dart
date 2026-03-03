@@ -1,6 +1,7 @@
 import 'package:epams/Director/AddKPI.dart';
 import 'package:epams/Director/AddPeerEvaluators.dart';
 import 'package:epams/Director/ConfidentialEvaluation.dart';
+import 'package:epams/Director/EmailSetting.dart';
 import 'package:epams/Director/MakeQuestioner.dart';
 import 'package:epams/Director/SeePerformance.dart';
 import 'package:epams/login.dart';
@@ -236,6 +237,25 @@ class _DirectordashboardState extends State<Directordashboard> {
                             context,
                           MaterialPageRoute(
                      builder: (context) => const Addpeerevaluators(), // your target screen
+                         ),
+                      );
+                      },
+                    ),
+                  ),
+
+                   const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: dashboardCard(
+                      icon: Icons.lock_outline,
+                      title: 'Email Setting',
+                      subtitle: 'Confidential Evaluations',
+                      onTap: () {
+                         Navigator.push(
+                            context,
+                          MaterialPageRoute(
+                     builder: (context) => const Emailsetting(), // your target screen
                          ),
                       );
                       },

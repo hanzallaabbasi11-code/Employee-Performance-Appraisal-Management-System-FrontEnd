@@ -58,7 +58,9 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
   Future<void> fetchActiveQuestionnaire() async {
     try {
       final response = await http.get(
-        Uri.parse("$Url/Student/GetActiveQuestionnaire?type=Confidential Evaluation"),
+        Uri.parse(
+          "$Url/Student/GetActiveQuestionnaire?type=Confidential Evaluation",
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -101,10 +103,14 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(course.courseCode,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(course.sessionName,
-                  style: const TextStyle(color: Colors.grey)),
+              Text(
+                course.courseCode,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                course.sessionName,
+                style: const TextStyle(color: Colors.grey),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -126,6 +132,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                         MaterialPageRoute(
                           builder: (context) => Confidentialevaluationform(
                             studentId: widget.studentId,
+                            enrollmentId: course.enrollmentID, // ✅ ADD THIS
                             courseCode: course.courseCode,
                             courseName: course.courseTitle,
                             teacherName: course.teacherName,
@@ -162,7 +169,8 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                           const CircleAvatar(
                             radius: 18,
                             backgroundImage: AssetImage(
-                                'assets/images/student_image.jpeg'),
+                              'assets/images/student_image.jpeg',
+                            ),
                           ),
                           const SizedBox(width: 10),
                           const Text(
@@ -177,7 +185,9 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                       const Text(
                         'Confidential Teacher Evaluation',
                         style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       const Text(
@@ -198,7 +208,8 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const Login()),
+                                builder: (context) => const Login(),
+                              ),
                             );
                           },
                           style: OutlinedButton.styleFrom(
