@@ -1,5 +1,28 @@
+import 'dart:convert';
 import 'package:epams/Director/DirectorDashboard.dart';
+import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+class EmailModel {
+  final int id;
+  final String mail;
+  final bool isActive;
+
+  EmailModel({
+    required this.id,
+    required this.mail,
+    required this.isActive,
+  });
+
+  factory EmailModel.fromJson(Map<String, dynamic> json) {
+    return EmailModel(
+      id: json['id'],
+      mail: json['mail'],
+      isActive: json['isActive'],
+    );
+  }
+}
 
 class Emailsetting extends StatefulWidget {
   const Emailsetting({super.key});
@@ -11,287 +34,261 @@ class Emailsetting extends StatefulWidget {
 class _EmailsettingState extends State<Emailsetting> {
   final TextEditingController emailController = TextEditingController();
 
-  int activeIndex = 0;
+  List<EmailModel> emails = [];
+  bool isLoading = true;
 
-  List<String> emails = [
-    "confidentialreports@university.edu",
-    "director@biit.edu.pk",
-  ];
+  final String baseUrl = "$Url/email/";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmails();
+  }
+
+  // ✅ FETCH ALL EMAILS
+  Future<void> fetchEmails() async {
+    try {
+      final response = await http.get(Uri.parse("${baseUrl}getall"));
+
+      if (response.statusCode == 200) {
+        List data = jsonDecode(response.body);
+        setState(() {
+          emails = data.map((e) => EmailModel.fromJson(e)).toList();
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // ✅ ADD EMAIL
+  Future<void> addEmail(String email) async {
+    final response = await http.post(
+      Uri.parse("${baseUrl}add"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"mail": email}),
+    );
+
+    if (response.statusCode == 200) {
+      emailController.clear();
+      fetchEmails();
+    }
+  }
+
+  // ✅ DELETE EMAIL
+  Future<void> deleteEmail(int id) async {
+    await http.delete(Uri.parse("${baseUrl}delete/$id"));
+    fetchEmails();
+  }
+
+  // ✅ ACTIVATE EMAIL
+  Future<void> activateEmail(int id) async {
+    final response =
+        await http.put(Uri.parse("${baseUrl}activate/$id"));
+
+    if (response.statusCode == 200) {
+      fetchEmails();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              "Another email is already active. Deactivate it first."),
+        ),
+      );
+    }
+  }
+
+  // ✅ DEACTIVATE EMAIL
+  Future<void> deactivateEmail(int id) async {
+    await http.put(Uri.parse("${baseUrl}deactivate/$id"));
+    fetchEmails();
+  }
+
+  EmailModel? get activeEmail =>
+      emails.firstWhere((e) => e.isActive, orElse: () => EmailModel(id: 0, mail: "No Active Email", isActive: false));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        elevation: 0,
         backgroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => Directordashboard()),
+              MaterialPageRoute(builder: (_) => Directordashboard()),
             );
           },
-          icon: Icon(Icons.arrow_back),
         ),
-        title: Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween, // pushes text and image to ends
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  "Email Settings",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  "Confidential Evaluations",
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ],
-            ),
-            Image.asset('assets/images/logo.jpeg', height: 40),
-          ],
+        title: const Text(
+          "Email Settings",
+          style: TextStyle(color: Colors.black),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// Current Session
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                "Current Session:  Fall 2025",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-            /// Title
-            const Text(
-              "Confidential Evaluation Email Settings",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              "Manage recipient emails for confidential evaluation reports",
-              style: TextStyle(color: Colors.grey),
-            ),
-
-            const SizedBox(height: 20),
-
-            /// Current Active Recipient Card
-            Container(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+
+                  /// CURRENT ACTIVE EMAIL
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.green.shade200),
                     ),
-                    child: const Icon(Icons.check, color: Colors.white),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        const Text(
-                          "Current Active Recipient",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          child: const Icon(Icons.check, color: Colors.white),
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          emails[activeIndex],
-                          style: const TextStyle(color: Colors.green),
-                        ),
-                        const SizedBox(height: 5),
-                        const Text(
-                          "All confidential evaluation results will be sent to this email.",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Current Active Recipient",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                activeEmail!.mail,
+                                style: const TextStyle(
+                                    color: Colors.green),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            /// Add New Recipient
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.add),
-                      SizedBox(width: 8),
-                      Text(
-                        "Add New Recipient",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  /// ADD EMAIL
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Add New Recipient",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  const Text("Email Address"),
-                  const SizedBox(height: 5),
-                  TextField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      hintText: "example@university.edu",
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: emailController,
+                          decoration: InputDecoration(
+                            hintText: "example@university.edu",
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
                         ),
-                      ),
-                      onPressed: () {
-                        if (emailController.text.isNotEmpty) {
-                          setState(() {
-                            emails.add(emailController.text);
-                            emailController.clear();
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.mail_outline),
-                      label: const Text("Add Email"),
+                        const SizedBox(height: 15),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: () {
+                              if (emailController.text.isNotEmpty) {
+                                addEmail(emailController.text);
+                              }
+                            },
+                            child: const Text("Add Email"),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            /// Saved Emails
-            Text(
-              "Saved Recipient Emails (${emails.length})",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 10),
-
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: emails.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: activeIndex == index
-                          ? Colors.green
-                          : Colors.grey.shade300,
-                    ),
+                  const Text(
+                    "Saved Recipient Emails",
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  child: Row(
-                    children: [
-                      Radio(
-                        value: index,
-                        groupValue: activeIndex,
-                        activeColor: Colors.green,
-                        onChanged: (value) {
-                          setState(() {
-                            activeIndex = value!;
-                          });
-                        },
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+
+                  const SizedBox(height: 10),
+
+                  /// EMAIL LIST
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics:
+                        const NeverScrollableScrollPhysics(),
+                    itemCount: emails.length,
+                    itemBuilder: (context, index) {
+                      final email = emails[index];
+
+                      return Container(
+                        margin:
+                            const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius.circular(15),
+                        ),
+                        child: Row(
                           children: [
-                            Text(emails[index]),
-                            if (activeIndex == index)
-                              Container(
-                                margin: const EdgeInsets.only(top: 5),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  "Active Recipient",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
+                            Expanded(child: Text(email.mail)),
+
+                            /// TOGGLE SWITCH
+                            Switch(
+                              value: email.isActive,
+                              activeColor: Colors.green,
+                              onChanged: (value) {
+                                if (value) {
+                                  activateEmail(email.id);
+                                } else {
+                                  deactivateEmail(email.id);
+                                }
+                              },
+                            ),
+
+                            /// DELETE
+                            IconButton(
+                              icon: const Icon(Icons.delete,
+                                  color: Colors.red),
+                              onPressed: () {
+                                deleteEmail(email.id);
+                              },
+                            ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            emails.removeAt(index);
-                            if (activeIndex >= emails.length) {
-                              activeIndex = 0;
-                            }
-                          });
-                        },
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
