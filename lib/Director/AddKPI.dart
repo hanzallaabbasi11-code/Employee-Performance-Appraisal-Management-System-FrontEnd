@@ -1,9 +1,7 @@
-import 'dart:convert';
-
-import 'package:epams/Session.dart';
-import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:epams/Url.dart';
 
 class Addkpi extends StatefulWidget {
   const Addkpi({super.key});
@@ -14,364 +12,249 @@ class Addkpi extends StatefulWidget {
 
 class _AddkpiState extends State<Addkpi> {
 
-  /// SESSION VARIABLES
-  late Future<List<Session>> _sessionsFuture;
-  Session? selectedSession;
+  final _formKey = GlobalKey<FormState>();
 
-  /// Controllers
-  final TextEditingController kpiNameController = TextEditingController();
-  final TextEditingController kpiWeightController = TextEditingController();
-  final TextEditingController subKpiNameController = TextEditingController();
-  final TextEditingController subKpiWeightController = TextEditingController();
+  final TextEditingController _kpiNameController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
 
-  String? selectedCategory;
-  bool showSubKpiForm = false;
+  final TextEditingController _draftSubName = TextEditingController();
+  final TextEditingController _draftSubWeight = TextEditingController();
 
-  List<String> categoryList = [
-    'Teacher',
-    'Admin',
-    'DataCell',
-    'Staff',
-    'Lab Attendent',
-  ];
+  int? selectedSession;
+  int? selectedEmpType;
 
-  /// Temp sub KPIs
-  List<Map<String, String>> tempSubKpis = [];
+  List sessions = [];
+  List empTypes = [];
+  List subKpis = [];
+  List overview = [];
 
-  /// Final KPI list (UI only)
-  List<Map<String, dynamic>> addedKpis = [];
+  bool loading = false;
+  int? openKpiId;
+
+  final String baseUrl = "$Url/kpi";
 
   @override
   void initState() {
     super.initState();
-    _sessionsFuture = fetchSessions();
+    loadInitialData();
   }
 
-  /// FETCH SESSIONS
-  Future<List<Session>> fetchSessions() async {
-    final response = await http.get(
-      Uri.parse('$Url/PeerEvaluator/Sessions'),
-      headers: {'Content-Type': 'application/json'},
-    );
+  /// LOAD SESSIONS + EMP TYPES
+  Future<void> loadInitialData() async {
 
-    if (response.statusCode == 200) {
-      List data = json.decode(response.body);
-      return data.map((e) => Session.fromJson(e)).toList();
-    } else {
-      throw Exception('Failed to load sessions');
+    final s = await http.get(Uri.parse("$baseUrl/sessions"));
+    final e = await http.get(Uri.parse("$baseUrl/emptypes"));
+
+    setState(() {
+      sessions = jsonDecode(s.body);
+      empTypes = jsonDecode(e.body);
+    });
+  }
+
+  /// LOAD KPI OVERVIEW
+  Future<void> loadOverview() async {
+
+    if (selectedSession == null || selectedEmpType == null) return;
+
+    setState(() => loading = true);
+
+    final res = await http.get(
+        Uri.parse("$baseUrl/view-weights/$selectedSession/$selectedEmpType"));
+
+    if (res.statusCode == 200) {
+      setState(() {
+        overview = jsonDecode(res.body);
+      });
     }
+
+    setState(() => loading = false);
   }
 
-  /// SAVE KPI
-  Future<bool> saveKpiToDatabase() async {
-    final url = Uri.parse('$Url/kpi/create-with-weight');
+  /// ADD DRAFT SUB KPI
+  void addSubDraft() {
 
-    int employeeTypeId = categoryList.indexOf(selectedCategory!) + 1;
+    if (_draftSubName.text.isEmpty || _draftSubWeight.text.isEmpty) {
+      show("Enter Sub KPI name and weight");
+      return;
+    }
+
+    setState(() {
+
+      subKpis.add({
+        "Name": _draftSubName.text,
+        "Weight": int.parse(_draftSubWeight.text)
+      });
+
+      _draftSubName.clear();
+      _draftSubWeight.clear();
+    });
+  }
+
+  void removeSubDraft(int i) {
+    setState(() => subKpis.removeAt(i));
+  }
+
+  /// CREATE KPI
+  Future<void> createKpi() async {
+
+    if (!_formKey.currentState!.validate()) return;
 
     final body = {
-      "KPIName": kpiNameController.text,
-      "EmployeeTypeId": employeeTypeId,
-      "SessionId": selectedSession!.id,
-      "RequestedKPIWeight": int.parse(kpiWeightController.text),
-      "SubKPIs": tempSubKpis.map((sub) {
-        return {"Name": sub['name'], "Weight": int.parse(sub['weight']!)};
-      }).toList(),
+      "KPIName": _kpiNameController.text,
+      "EmployeeTypeId": selectedEmpType,
+      "SessionId": selectedSession,
+      "RequestedKPIWeight": int.parse(_weightController.text),
+      "SubKPIs": subKpis
     };
 
-    final response = await http.post(
-      url,
+    final res = await http.post(
+      Uri.parse("$baseUrl/create-with-weight"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );
 
-    if (response.statusCode == 200) {
-      return true;
-    } else {
-      print(response.body);
-      return false;
+    if (res.statusCode == 200) {
+
+      show("KPI Created");
+
+      setState(() {
+        subKpis.clear();
+        _kpiNameController.clear();
+        _weightController.clear();
+      });
+
+      loadOverview();
     }
+  }
+
+  /// ADD SUB KPI TO EXISTING KPI
+  Future<void> addSubKpiDynamic(int kpiId) async {
+
+    TextEditingController name = TextEditingController();
+    TextEditingController weight = TextEditingController();
+
+    showDialog(
+        context: context,
+        builder: (_) {
+
+          return AlertDialog(
+
+            title: const Text("Add Sub KPI"),
+
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                TextField(controller: name, decoration: const InputDecoration(hintText: "Name")),
+
+                TextField(controller: weight, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: "Weight"))
+
+              ],
+            ),
+
+            actions: [
+
+              TextButton(
+
+                onPressed: () async {
+
+                  final body = {
+                    "KpiId": kpiId,
+                    "SessionId": selectedSession,
+                    "Name": name.text,
+                    "NewWeight": int.parse(weight.text)
+                  };
+
+                  await http.post(
+                      Uri.parse("$baseUrl/add-subkpi-dynamic"),
+                      headers: {"Content-Type": "application/json"},
+                      body: jsonEncode(body));
+
+                  Navigator.pop(context);
+
+                  loadOverview();
+                },
+
+                child: const Text("Add"),
+              )
+            ],
+          );
+        });
+  }
+
+  /// DELETE SUB KPI
+  Future<void> deleteSubKpi(int subId) async {
+
+    await http.delete(
+        Uri.parse("$baseUrl/delete-subkpi/$selectedSession/$subId"));
+
+    loadOverview();
+  }
+
+  /// DELETE MAIN KPI
+  Future<void> deleteMainKpi(int kpiId) async {
+
+    await http.delete(
+        Uri.parse("$baseUrl/delete-main-kpi/$selectedSession/$kpiId"));
+
+    loadOverview();
+  }
+
+  /// EDIT KPI NAME
+  Future<void> editKpi(int id, String name) async {
+
+    await http.put(
+        Uri.parse("$baseUrl/edit-kpi-name/$id"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(name));
+
+    loadOverview();
+  }
+
+  /// EDIT SUB KPI NAME
+  Future<void> editSub(int id, String name) async {
+
+    await http.put(
+        Uri.parse("$baseUrl/edit-subkpi-name/$id"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(name));
+
+    loadOverview();
+  }
+
+  void show(String m) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+
+      appBar: AppBar(title: const Text("KPI Configuration")),
+
+      body: SingleChildScrollView(
+
+        padding: const EdgeInsets.all(20),
+
+        child: Form(
+
+          key: _formKey,
+
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
             children: [
 
-              /// HEADER
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Text(
-                    'Add KPI',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Image.asset('assets/images/logo.jpeg', height: 40),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                  'Define KPIs and sub-KPIs for each category type.'),
-
-              const SizedBox(height: 16),
-
-              /// SESSION DROPDOWN
-              FutureBuilder<List<Session>>(
-                future: _sessionsFuture,
-                builder: (context, snapshot) {
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-
-                  if (snapshot.hasError) {
-                    return const Text('Failed to load sessions');
-                  }
-
-                  final sessions = snapshot.data!;
-
-                  return DropdownButtonFormField<Session>(
-                    value: selectedSession,
-                    hint: const Text('Select Session'),
-                    items: sessions.map((s) {
-                      return DropdownMenuItem<Session>(
-                        value: s,
-                        child: Text(s.name),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        selectedSession = val;
-                      });
-                    },
-                    decoration: _inputDecoration(),
-                  );
-                },
-              ),
+              buildCreateCard(),
 
               const SizedBox(height: 20),
 
-              /// CREATE KPI CARD
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.green.shade200),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              const Text("Live KPI Overview",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
-                    const Text(
-                      'Create New KPI',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// CATEGORY DROPDOWN
-                    DropdownButtonFormField<String>(
-                      value: selectedCategory,
-                      hint: const Text('Select category type'),
-                      items: categoryList.map((e) =>
-                          DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (val) =>
-                          setState(() => selectedCategory = val),
-                      decoration: _inputDecoration(),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    /// KPI NAME
-                    TextField(
-                      controller: kpiNameController,
-                      decoration: _inputDecoration(
-                        hint: 'e.g., Academics, Society',
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    /// KPI WEIGHT
-                    TextField(
-                      controller: kpiWeightController,
-                      keyboardType: TextInputType.number,
-                      decoration: _inputDecoration(
-                        hint: 'e.g., 80 (will auto-adjust)',
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// NEXT BUTTON
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        minimumSize: const Size(double.infinity, 48),
-                      ),
-                      onPressed: () {
-                        setState(() => showSubKpiForm = true);
-                      },
-                      child: const Text('Next: Add Sub-KPIs'),
-                    ),
-
-                    /// SUB KPI FORM
-                    if (showSubKpiForm) ...[
-
-                      const SizedBox(height: 20),
-
-                      TextField(
-                        controller: subKpiNameController,
-                        decoration: _inputDecoration(hint: 'Sub-KPI Name'),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: subKpiWeightController,
-                        keyboardType: TextInputType.number,
-                        decoration: _inputDecoration(hint: 'Sub-KPI Weight'),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      /// ADD SUB KPI
-                      ElevatedButton(
-                        onPressed: () {
-
-                          if (subKpiNameController.text.isEmpty ||
-                              subKpiWeightController.text.isEmpty) {
-                            return;
-                          }
-
-                          tempSubKpis.add({
-                            'name': subKpiNameController.text,
-                            'weight': subKpiWeightController.text,
-                          });
-
-                          subKpiNameController.clear();
-                          subKpiWeightController.clear();
-
-                          setState(() {});
-                        },
-                        child: const Text('Add Sub-KPI'),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      /// SHOW SUB KPIs
-                      ...tempSubKpis.map((sub) => ListTile(
-                        title: Text(sub['name']!),
-                        trailing: Text('${sub['weight']}%'),
-                      )),
-
-                      const SizedBox(height: 12),
-
-                      /// SAVE KPI
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade700,
-                        ),
-                        onPressed: () async {
-
-                          if (selectedSession == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Please select session")),
-                            );
-                            return;
-                          }
-
-                          if (selectedCategory == null ||
-                              kpiNameController.text.isEmpty ||
-                              kpiWeightController.text.isEmpty ||
-                              tempSubKpis.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Please complete all fields"),
-                              ),
-                            );
-                            return;
-                          }
-
-                          bool success = await saveKpiToDatabase();
-
-                          if (success) {
-
-                            addedKpis.add({
-                              'category': selectedCategory,
-                              'name': kpiNameController.text,
-                              'weight': kpiWeightController.text,
-                              'subKpis': List.from(tempSubKpis),
-                            });
-
-                            selectedCategory = null;
-                            kpiNameController.clear();
-                            kpiWeightController.clear();
-                            tempSubKpis.clear();
-                            showSubKpiForm = false;
-
-                            setState(() {});
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("KPI Saved Successfully"),
-                              ),
-                            );
-
-                          } else {
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Error saving KPI")),
-                            );
-
-                          }
-                        },
-                        child: const Text('Save KPI'),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              /// KPI LIST
-              const Text(
-                'KPI Categories',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 10),
-
-              ...addedKpis.map(
-                    (kpi) => Card(
-                  child: ExpansionTile(
-                    title: Text(kpi['name']),
-                    subtitle: Text(
-                        '${kpi['category']} • Weight: ${kpi['weight']}%'),
-                    children: (kpi['subKpis'] as List)
-                        .map<Widget>((sub) =>
-                        ListTile(
-                          title: Text(sub['name']),
-                          trailing: Text('${sub['weight']}%'),
-                        ))
-                        .toList(),
-                  ),
-                ),
-              ),
+              loading
+                  ? const CircularProgressIndicator()
+                  : buildOverview()
 
             ],
           ),
@@ -380,14 +263,201 @@ class _AddkpiState extends State<Addkpi> {
     );
   }
 
-  InputDecoration _inputDecoration({String? hint}) {
-    return InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: const Color(0xFFF3F8F5),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
+  /// CREATE CARD
+  Widget buildCreateCard() {
+
+    return Card(
+
+      child: Padding(
+
+        padding: const EdgeInsets.all(20),
+
+        child: Column(
+
+          children: [
+
+            dropdown(sessions, selectedSession, "Session", (v) {
+              setState(() => selectedSession = v);
+              loadOverview();
+            }, true),
+
+            dropdown(empTypes, selectedEmpType, "Employee Type", (v) {
+              setState(() => selectedEmpType = v);
+              loadOverview();
+            }, false),
+
+            input(_kpiNameController, "KPI Name"),
+            input(_weightController, "Weight", number: true),
+
+            const Divider(),
+
+            Row(
+              children: [
+                Expanded(child: input(_draftSubName, "Sub KPI", required: false)),
+                const SizedBox(width: 10),
+                Expanded(child: input(_draftSubWeight, "Weight", number: true, required: false))
+              ],
+            ),
+
+            ElevatedButton(
+                onPressed: addSubDraft,
+                child: const Text("Add Sub KPI")),
+
+            ...subKpis.asMap().entries.map((e) {
+
+              int i = e.key;
+              var s = e.value;
+
+              return ListTile(
+                title: Text(s['Name']),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("${s['Weight']}%"),
+                    IconButton(
+                        onPressed: () => removeSubDraft(i),
+                        icon: const Icon(Icons.delete,color: Colors.red))
+                  ],
+                ),
+              );
+            }),
+
+            ElevatedButton(
+                onPressed: createKpi,
+                child: const Text("Save KPI"))
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// KPI OVERVIEW
+  Widget buildOverview() {
+
+    return ListView.builder(
+
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: overview.length,
+
+      itemBuilder: (_, i) {
+
+        var k = overview[i];
+        bool open = openKpiId == k['kpiId'];
+
+        return Card(
+
+          child: Column(
+
+            children: [
+
+              ListTile(
+
+                title: Text(k['kpiName']),
+                subtitle: Text("${k['totalKpiWeight']}%"),
+
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+
+                    IconButton(
+                        icon: const Icon(Icons.add),
+                        onPressed: () => addSubKpiDynamic(k['kpiId'])),
+
+                    IconButton(
+                        icon: const Icon(Icons.delete,color: Colors.red),
+                        onPressed: () => deleteMainKpi(k['kpiId'])),
+
+                    Icon(open ? Icons.expand_less : Icons.expand_more)
+
+                  ],
+                ),
+
+                onTap: () {
+                  setState(() {
+                    openKpiId = open ? null : k['kpiId'];
+                  });
+                },
+              ),
+
+              if (open)
+
+                Column(
+
+                  children: [
+
+                    ...k['subKpis'].map<Widget>((s) => ListTile(
+                      title: Text(s['subKpiName']),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text("${s['weight']}%"),
+                          IconButton(
+                              icon: const Icon(Icons.delete,color: Colors.red),
+                              onPressed: () => deleteSubKpi(s['subKpiId']))
+                        ],
+                      ),
+                    ))
+                  ],
+                )
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget dropdown(List list, int? value, String hint, Function(int?) onChange, bool session) {
+
+    return Padding(
+
+      padding: const EdgeInsets.only(bottom: 12),
+
+      child: DropdownButtonFormField<int>(
+
+        value: value,
+        hint: Text(hint),
+
+        items: list.map((e) {
+
+          return DropdownMenuItem<int>(
+            value: e['id'],
+            child: Text(session ? e['name'] : e['type']),
+          );
+
+        }).toList(),
+
+        onChanged: onChange,
+
+        validator: (v) => v == null ? "Required" : null,
+
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+
+      ),
+    );
+  }
+
+  Widget input(TextEditingController c, String h,
+      {bool number=false, bool required=true}) {
+
+    return Padding(
+
+      padding: const EdgeInsets.only(bottom: 12),
+
+      child: TextFormField(
+
+        controller: c,
+        keyboardType: number ? TextInputType.number : TextInputType.text,
+
+        validator: required
+            ? (v) => v == null || v.isEmpty ? "Required" : null
+            : null,
+
+        decoration: InputDecoration(
+            hintText: h,
+            border: const OutlineInputBorder()),
+
       ),
     );
   }

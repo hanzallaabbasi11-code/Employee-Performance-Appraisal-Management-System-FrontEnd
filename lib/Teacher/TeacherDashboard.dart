@@ -24,7 +24,8 @@ class TeacherdashboardState extends State<Teacherdashboard> {
   bool isPeerActive = false;
   bool isChecking = true;
   String teacherName = "";
-  int? _evaluatorID; // fetched evaluator ID
+  int? _evaluatorID;
+  String userId='';// fetched evaluator ID
 
   @override
   void initState() {
@@ -311,7 +312,9 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Teacherseeperformance(),
+                      builder: (context) => Teacherseeperformance(
+                        teacherName: teacherName,
+                        userId: widget.teacherID,),
                     ),
                   );
                 },
