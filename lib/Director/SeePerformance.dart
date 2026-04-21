@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:epams/Director/DetailComparison.dart';
+import 'package:epams/Director/ViewPerformance.dart';
+//import 'package:epams/Director/Viewperformance.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -56,7 +58,7 @@ class _SeeperformanceState extends State<Seeperformance> {
     });
   }
 
-  // ================= COURSES BY SESSION =================
+  // ================= COURSES =================
   Future getCourses(int sessionId) async {
     var res = await http.get(
       Uri.parse("$Url/Performance/GetCoursesBySession?sessionId=$sessionId"),
@@ -177,15 +179,18 @@ class _SeeperformanceState extends State<Seeperformance> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+
               Expanded(
                 child: Text(
                   "Teacher Performance Comparison",
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
+
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -202,7 +207,9 @@ class _SeeperformanceState extends State<Seeperformance> {
               ),
             ],
           ),
+
           SizedBox(height: 10),
+
           SizedBox(
             height: 220,
             child: SfCartesianChart(
@@ -236,6 +243,7 @@ class _SeeperformanceState extends State<Seeperformance> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -249,18 +257,24 @@ class _SeeperformanceState extends State<Seeperformance> {
               ),
             ],
           ),
+
           SizedBox(height: 4),
+
           Text(
             t['CourseCode'],
             style: TextStyle(color: Colors.grey),
           ),
+
           SizedBox(height: 8),
+
           LinearProgressIndicator(
             value: percent / 100,
             minHeight: 8,
             borderRadius: BorderRadius.circular(10),
           ),
+
           SizedBox(height: 12),
+
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -270,7 +284,20 @@ class _SeeperformanceState extends State<Seeperformance> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              onPressed: () {},
+              onPressed: () {
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Viewperformance(
+                      teacherId: t['TeacherID'],
+                      courseCode: t['CourseCode'],
+                      sessionId: selectedSession!,
+                    ),
+                  ),
+                );
+
+              },
               child: Text("View Performance"),
             ),
           ),
@@ -284,25 +311,39 @@ class _SeeperformanceState extends State<Seeperformance> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xffF4F6FA),
+
       appBar: AppBar(
         title: Text("Employee Performance"),
         backgroundColor: Colors.green,
       ),
+
       body: Padding(
         padding: EdgeInsets.all(12),
         child: ListView(
           children: [
+
             sessionDropdown(),
+
             SizedBox(height: 12),
+
             employeeTabs(),
+
             SizedBox(height: 12),
+
             Text("Filter by Course:"),
+
             SizedBox(height: 8),
+
             courseFilter(),
+
             SizedBox(height: 16),
+
             performanceChart(),
+
             SizedBox(height: 16),
+
             ...teachers.map((t) => teacherCard(t)).toList(),
+
           ],
         ),
       ),

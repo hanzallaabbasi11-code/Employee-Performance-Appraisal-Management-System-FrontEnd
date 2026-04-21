@@ -2,6 +2,7 @@ import 'package:epams/HOD/AddPeerEvaluatorScreen.dart';
 import 'package:epams/HOD/CHRPointsSettingScreen.dart';
 import 'package:epams/HOD/CourseManagementScreen.dart';
 import 'package:epams/HOD/SeePerformanceScreen.dart';
+import 'package:epams/HOD/SocietyDashboard.dart';
 import 'package:epams/login.dart';
 //import 'package:epams/SeePerformanceScreen.dart';
 import 'package:flutter/material.dart';
@@ -247,8 +248,27 @@ class _HodState extends State<HodDashboard> {
                       );
                     },
                   ),
+                   
+                    const SizedBox(height: 12),
+                  buildManageButton(
+                    icon: Icons.group,
+                    label: 'Society Management',
+                    description: 'SMO Administration',
+                    backgroundColor: Colors.lightGreen,
+                    onPressed: () {
+                       Navigator.push(
+                            context,
+                          MaterialPageRoute(
+                     builder: (context) => Societydashboard(), // your target screen
+                         ),
+                      );
+                    },
+                  ),
+
                 ],
               ),
+
+              
               const SizedBox(height: 15),
               SizedBox(
                 width: double.infinity,
