@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'package:epams/Student/Confidential_db.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:epams/Teacher/QuestionnaireModel.dart';
+//import 'confidential_db.dart';
 
 class Confidentialevaluationform extends StatefulWidget {
   final String courseCode;
@@ -30,14 +32,12 @@ class Confidentialevaluationform extends StatefulWidget {
 class _ConfidentialevaluationformState
     extends State<Confidentialevaluationform> {
 
-  /// 🔹 Store answers using QuestionID as key (IMPORTANT)
   Map<int, String> selectedAnswers = {};
 
   final List<String> options = ["Excellent", "Good", "Average", "Poor"];
 
   bool isSubmitting = false;
 
-  /// 🔹 Convert Option → Score
   int getScore(String value) {
     switch (value) {
       case "Excellent":
@@ -53,8 +53,9 @@ class _ConfidentialevaluationformState
     }
   }
 
-  /// 🔹 Submit to API
+  /// 🔹 UPDATED FUNCTION
   Future<void> submitEvaluation() async {
+
     final questions = widget.questionnaire.questions;
 
     List<Map<String, dynamic>> answers = [];
@@ -75,13 +76,30 @@ class _ConfidentialevaluationformState
     setState(() => isSubmitting = true);
 
     try {
+
+      /// 🔹 Save answers in SQLite
+      for (var question in questions) {
+
+        await ConfidentialDB.insertEvaluation(
+          session: DateTime.now().year.toString(),
+          courseCode: widget.courseCode,
+          courseName: widget.courseName,
+          teacherName: widget.teacherName,
+          question: question.questionText,
+          answer: selectedAnswers[question.questionID]!,
+        );
+
+      }
+
+      /// 🔹 Existing Backend API (Email)
       final response = await http.post(
-        Uri.parse("$Url/Student/SubmitConfidentialEvaluation"), // 🔴 replace with real URL
+        Uri.parse("$Url/Student/SubmitConfidentialEvaluation"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Evaluation Submitted Successfully"),
@@ -89,19 +107,25 @@ class _ConfidentialevaluationformState
         );
 
         Navigator.pop(context);
+
       } else {
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Error: ${response.body}"),
           ),
         );
+
       }
+
     } catch (e) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Exception: $e"),
         ),
       );
+
     }
 
     setState(() => isSubmitting = false);
@@ -109,6 +133,7 @@ class _ConfidentialevaluationformState
 
   @override
   Widget build(BuildContext context) {
+
     final questions = widget.questionnaire.questions;
 
     return Scaffold(
@@ -120,7 +145,6 @@ class _ConfidentialevaluationformState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              /// 🔹 Back Button
               Row(
                 children: [
                   IconButton(
@@ -138,7 +162,6 @@ class _ConfidentialevaluationformState
 
               const SizedBox(height: 15),
 
-              /// 🔹 Course Info Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -202,13 +225,12 @@ class _ConfidentialevaluationformState
 
               const SizedBox(height: 15),
 
-              /// 🔹 Questions
               ListView.builder(
                 itemCount: questions.length,
                 shrinkWrap: true,
-                physics:
-                    const NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
+
                   final question = questions[index];
 
                   return Container(
@@ -216,59 +238,46 @@ class _ConfidentialevaluationformState
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                           color: Colors.green.shade100),
                     ),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
 
-                        /// Question Text
                         Text(
                           "${index + 1}. ${question.questionText}",
                           style: const TextStyle(
-                            fontWeight:
-                                FontWeight.w500,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
 
                         const SizedBox(height: 12),
 
-                        /// Options
                         Wrap(
                           spacing: 10,
                           runSpacing: 10,
-                          children:
-                              options.map((option) {
+                          children: options.map((option) {
 
                             bool isSelected =
-                                selectedAnswers[
-                                        question.questionID] ==
-                                    option;
+                                selectedAnswers[question.questionID] == option;
 
                             return GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  selectedAnswers[
-                                          question.questionID] =
-                                      option;
+                                  selectedAnswers[question.questionID] = option;
                                 });
                               },
                               child: Container(
-                                padding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 8),
-                                decoration:
-                                    BoxDecoration(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8),
+                                decoration: BoxDecoration(
                                   color: isSelected
                                       ? Colors.green.shade50
                                       : Colors.grey.shade100,
-                                  borderRadius:
-                                      BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isSelected
                                         ? Colors.green
@@ -285,8 +294,10 @@ class _ConfidentialevaluationformState
                                 ),
                               ),
                             );
+
                           }).toList(),
                         ),
+
                       ],
                     ),
                   );
@@ -299,28 +310,22 @@ class _ConfidentialevaluationformState
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.green,
-                    padding:
-                        const EdgeInsets.symmetric(
-                            vertical: 14),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: isSubmitting
                       ? null
                       : () async {
 
-                          if (selectedAnswers.length !=
-                              questions.length) {
-                            ScaffoldMessenger.of(
-                                    context)
-                                .showSnackBar(
+                          if (selectedAnswers.length != questions.length) {
+
+                            ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                    "Please answer all questions"),
+                                content: Text("Please answer all questions"),
                               ),
                             );
+
                             return;
                           }
 
@@ -330,16 +335,14 @@ class _ConfidentialevaluationformState
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child:
-                              CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             color: Colors.white,
                             strokeWidth: 2,
                           ),
                         )
                       : const Text(
                           "Submit Evaluation",
-                          style: TextStyle(
-                              fontSize: 16),
+                          style: TextStyle(fontSize: 16),
                         ),
                 ),
               ),
@@ -349,11 +352,10 @@ class _ConfidentialevaluationformState
               const Center(
                 child: Text(
                   "Your responses will remain confidential.",
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ),
+
             ],
           ),
         ),

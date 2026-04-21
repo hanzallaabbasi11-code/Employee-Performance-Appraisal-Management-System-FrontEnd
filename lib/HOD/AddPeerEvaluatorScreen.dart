@@ -9,7 +9,8 @@ class AddPeerEvaluatorScreen extends StatefulWidget {
   const AddPeerEvaluatorScreen({super.key});
 
   @override
-  State<AddPeerEvaluatorScreen> createState() => _AddPeerEvaluatorScreenState();
+  State<AddPeerEvaluatorScreen> createState() =>
+      _AddPeerEvaluatorScreenState();
 }
 
 class _AddPeerEvaluatorScreenState extends State<AddPeerEvaluatorScreen> {
@@ -17,260 +18,210 @@ class _AddPeerEvaluatorScreenState extends State<AddPeerEvaluatorScreen> {
 
   Session? selectedSession;
 
-  // List of all teachers loaded on init
   List<Map<String, dynamic>> teachers = [];
 
-  // List of selected teachers to add as peer evaluators
-  List<Map<String, dynamic>> selectedTeachers = [];
+  /// session-based selected teachers (PeerEvaluator table)
+  List<String> sessionSelectedTeacherIds = [];
 
   @override
   void initState() {
     super.initState();
     _sessionsFuture = fetchSessions();
-    fetchAllTeachers(); // Load all teachers on start
+    fetchAllTeachers();
   }
 
+  /// =========================
+  /// SESSIONS
+  /// =========================
   Future<List<Session>> fetchSessions() async {
-    final response = await http.get(
+    final res = await http.get(
       Uri.parse('$Url/PeerEvaluator/Sessions'),
       headers: {'Content-Type': 'application/json'},
     );
 
-    if (response.statusCode == 200) {
-      List data = json.decode(response.body);
+    if (res.statusCode == 200) {
+      List data = json.decode(res.body);
       return data.map((e) => Session.fromJson(e)).toList();
-    } else {
-      throw Exception('Failed to load sessions');
     }
+    throw Exception("Failed sessions");
   }
 
+  /// =========================
+  /// TEACHERS
+  /// =========================
   Future<void> fetchAllTeachers() async {
-    final response = await http.get(
+    final res = await http.get(
       Uri.parse('$Url/PeerEvaluator/Teachers'),
       headers: {'Content-Type': 'application/json'},
     );
 
-    if (response.statusCode == 200) {
-      List data = json.decode(response.body);
+    if (res.statusCode == 200) {
+      List data = json.decode(res.body);
+
       setState(() {
         teachers = data.map<Map<String, dynamic>>((t) {
           return {
             'id': t['userID'],
             'name': t['name'],
-            'subject': t['department'], // Using department as subject here
-            'dept': t['department'],
-            'isSelected': false,
+            'subject': t['department'],
+            'isPermanent': (t['isPermanentEvaluator'] ?? 0) == 1,
           };
         }).toList();
-
-        selectedTeachers.clear();
       });
-    } else {
-      setState(() {
-        teachers = [];
-        selectedTeachers = [];
-      });
-      throw Exception('Failed to load teachers');
     }
   }
 
+  /// =========================
+  /// SESSION SELECTED LOAD (IMPORTANT FIX)
+  /// =========================
+  Future<void> fetchSessionEvaluators(int sessionId) async {
+    final res = await http.get(
+      Uri.parse('$Url/PeerEvaluator/BySession/$sessionId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (res.statusCode == 200) {
+      List data = json.decode(res.body);
+
+      setState(() {
+        sessionSelectedTeacherIds =
+            data.map<String>((e) => e['userID'].toString()).toList();
+      });
+    } else {
+      setState(() {
+        sessionSelectedTeacherIds = [];
+      });
+    }
+  }
+
+  /// =========================
+  /// ADD PEER EVALUATORS
+  /// =========================
   Future<void> addPeerEvaluators() async {
-    if (selectedSession == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a session')),
-      );
-      return;
-    }
+    if (selectedSession == null) return;
 
-    if (selectedTeachers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one teacher')),
-      );
-      return;
-    }
-
-    final teacherIds = selectedTeachers.map((t) => t['id']).toList();
+    final teacherIds = {
+      ...teachers
+          .where((t) => t['isPermanent'] == true)
+          .map((t) => t['id'].toString()),
+      ...sessionSelectedTeacherIds
+    }.toList();
 
     final body = json.encode({
       "SessionId": selectedSession!.id,
       "TeacherIds": teacherIds,
     });
 
-    final response = await http.post(
+    await http.post(
       Uri.parse('$Url/PeerEvaluator/Add'),
       headers: {'Content-Type': 'application/json'},
       body: body,
     );
 
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Peer evaluators added successfully')),
-      );
-
-      // Optionally, clear selection after success
-      setState(() {
-        for (var teacher in teachers) {
-          teacher['isSelected'] = false;
-        }
-        selectedTeachers.clear();
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to add peer evaluators')),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Saved Successfully")),
+    );
   }
 
+  /// =========================
+  /// UI
+  /// =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// HEADER
-              const Text(
-                'Add Peer Evaluator',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            const Text("Add Peer Evaluator"),
 
-              const SizedBox(height: 12),
+            /// SESSION DROPDOWN
+            FutureBuilder<List<Session>>(
+              future: _sessionsFuture,
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  return const CircularProgressIndicator();
+                }
 
-              /// SESSION DROPDOWN
-              FutureBuilder<List<Session>>(
-                future: _sessionsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
+                return DropdownButton<Session>(
+                  value: selectedSession,
+                  hint: const Text("Select Session"),
+                  items: snap.data!.map((s) {
+                    return DropdownMenuItem(
+                      value: s,
+                      child: Text(s.name),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      selectedSession = val;
+                    });
 
-                  if (snapshot.hasError) {
-                    return const Text('Failed to load sessions');
-                  }
+                    if (val != null) {
+                      fetchSessionEvaluators(val.id); // 🔥 IMPORTANT FIX
+                    }
+                  },
+                );
+              },
+            ),
 
-                  final sessions = snapshot.data!;
+            const Divider(),
 
-                  return DropdownButtonFormField<Session>(
-                    value: selectedSession,
-                    hint: const Text('Select Session'),
-                    items: sessions.map((s) {
-                      return DropdownMenuItem<Session>(
-                        value: s,
-                        child: Text(s.name),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        selectedSession = val;
-                      });
-                    },
-                    decoration: _inputDecoration(),
+            /// TEACHERS LIST
+            Expanded(
+              child: ListView.builder(
+                itemCount: teachers.length,
+                itemBuilder: (context, index) {
+                  final t = teachers[index];
+
+                  final isPermanent = t['isPermanent'] == true;
+                  final isSessionSelected =
+                      sessionSelectedTeacherIds.contains(t['id'].toString());
+
+                  final isChecked = isPermanent || isSessionSelected;
+
+                  return Card(
+                    child: CheckboxListTile(
+                      value: isChecked,
+
+                      /// LOCK PERMANENT
+                      onChanged: isPermanent
+                          ? null
+                          : (val) {
+                              setState(() {
+                                if (val == true) {
+                                  sessionSelectedTeacherIds
+                                      .add(t['id'].toString());
+                                } else {
+                                  sessionSelectedTeacherIds
+                                      .remove(t['id'].toString());
+                                }
+                              });
+                            },
+
+                      title: Text(t['name']),
+                      subtitle: Text(t['subject']),
+
+                      secondary: isPermanent
+                          ? const Icon(Icons.lock, color: Colors.green)
+                          : isSessionSelected
+                              ? const Icon(Icons.check, color: Colors.blue)
+                              : null,
+                    ),
                   );
                 },
               ),
+            ),
 
-              const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed:
+                  selectedSession == null ? null : addPeerEvaluators,
+              child: const Text("SAVE"),
+            ),
 
-              /// SECTION TITLE
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                color: Colors.blue,
-                child: const Text(
-                  'Select teachers to assign as peer evaluators',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              /// TEACHERS LIST (All loaded on init)
-              ...teachers.map((teacher) {
-                return Card(
-                  color: teacher['isSelected'] ? Colors.green.shade50 : null,
-                  child: CheckboxListTile(
-                    value: teacher['isSelected'],
-                    onChanged: (val) {
-                      setState(() {
-                        teacher['isSelected'] = val;
-
-                        if (val == true) {
-                          selectedTeachers.add(teacher);
-                        } else {
-                          selectedTeachers.removeWhere(
-                              (t) => t['id'] == teacher['id']);
-                        }
-                      });
-                    },
-                    title: Text(teacher['name']),
-                    subtitle: Text(teacher['subject']),
-                    secondary: Text(teacher['dept']),
-                  ),
-                );
-              }),
-
-              const SizedBox(height: 12),
-
-              /// ADD BUTTON
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                icon: const Icon(Icons.add),
-                label: Text(
-                    'Add ${selectedTeachers.length} Selected Teachers as Peer Evaluators'),
-                onPressed: selectedTeachers.isEmpty || selectedSession == null
-                    ? null
-                    : () async {
-                        await addPeerEvaluators();
-                      },
-              ),
-
-              const SizedBox(height: 20),
-
-              /// CURRENT PEER EVALUATORS (show selected ones)
-              Text(
-                'Selected Teachers',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 8),
-
-              ...selectedTeachers.map((teacher) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.person),
-                      title: Text(teacher['name']),
-                      subtitle: Text(teacher['subject']),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.person_remove, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            teacher['isSelected'] = false;
-                            selectedTeachers.removeWhere(
-                                (t) => t['id'] == teacher['id']);
-                          });
-                        },
-                      ),
-                    ),
-                  )),
-            ],
-          ),
+            const SizedBox(height: 10),
+          ],
         ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration() {
-    return InputDecoration(
-      filled: true,
-      fillColor: const Color(0xFFF3F8F5),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
       ),
     );
   }
