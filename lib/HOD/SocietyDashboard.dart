@@ -190,7 +190,21 @@ class _SocietydashboardState extends State<Societydashboard> {
                       title: "Assign Chairpersons",
                       subtitle: "Assign chairpersons to societies (max 2)",
                       enabled: selectedSession != null,
-                      onTap: () {},
+                      onTap: () {
+
+                        if (selectedSession == null) {
+                          _showSelectSessionMessage();
+                          return;
+                        }
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                Assignchairpersons(session: selectedSession!),
+                          ),
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 12),
@@ -200,7 +214,21 @@ class _SocietydashboardState extends State<Societydashboard> {
                       title: "Assign Mentors",
                       subtitle: "Assign mentors to societies",
                       enabled: selectedSession != null,
-                      onTap: () {},
+                      onTap: () {
+                             
+                              if (selectedSession == null) {
+                          _showSelectSessionMessage();
+                          return;
+                        }
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                Assignmentors(session: selectedSession!),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
