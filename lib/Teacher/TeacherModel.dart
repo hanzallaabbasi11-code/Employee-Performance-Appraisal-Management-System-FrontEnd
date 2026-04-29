@@ -16,4 +16,8 @@ class TeacherModel {
       courses: List<String>.from(json['Courses'] ?? []),
     );
   }
+
+  get userid => null;
+
+  get sessionID => null;
 }

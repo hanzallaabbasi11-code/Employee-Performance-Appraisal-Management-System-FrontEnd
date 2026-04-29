@@ -40,7 +40,7 @@ class _LoginState extends State<Login> {
 
       switch (role) {
         case 'HOD':
-          nextScreen = const HodDashboard();
+          nextScreen = HodDashboard(hodId: userid);
           break;
         case 'Teacher':
           nextScreen = Teacherdashboard(teacherID: userid);

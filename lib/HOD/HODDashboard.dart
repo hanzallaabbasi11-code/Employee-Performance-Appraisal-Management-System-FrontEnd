@@ -1,15 +1,17 @@
 import 'package:epams/HOD/AddPeerEvaluatorScreen.dart';
 import 'package:epams/HOD/CHRPointsSettingScreen.dart';
 import 'package:epams/HOD/CourseManagementScreen.dart';
+import 'package:epams/HOD/EvaluateSocietyChairpersons.dart';
 import 'package:epams/HOD/SeePerformanceScreen.dart';
 import 'package:epams/HOD/SocietyDashboard.dart';
 import 'package:epams/login.dart';
-//import 'package:epams/SeePerformanceScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:epams/HOD/AddKpiScreen.dart';
 
 class HodDashboard extends StatefulWidget {
-  const HodDashboard({super.key});
+  final String hodId; // ✅ logged in HOD id
+
+  const HodDashboard({super.key, required this.hodId});
 
   @override
   State<HodDashboard> createState() => _HodState();
@@ -18,6 +20,8 @@ class HodDashboard extends StatefulWidget {
 class _HodState extends State<HodDashboard> {
   @override
   Widget build(BuildContext context) {
+    String hodId = widget.hodId; // ✅ use passed id
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -28,13 +32,12 @@ class _HodState extends State<HodDashboard> {
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'HOD: Dr. Munir',
+                        'HOD Dashboard',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -46,124 +49,12 @@ class _HodState extends State<HodDashboard> {
                       ),
                     ],
                   ),
-                  Image.asset(
-                    'assets/images/logo.jpeg',
-                    height: 40, // adjust size as needed
-                    fit: BoxFit.contain,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Green card: Monitor teacher performance
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Color(0xFF0A8F3C),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Monitor teacher performance, manage KPIs, and assign peer evaluators.',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green[800],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Fall 2025',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Cards row (Total Teachers & Top Performer)
-              Row(
-                children: [
-                  Expanded(
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 2,
-                      child: SizedBox(
-                        height: 180, // Fixed height, adjust as needed
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment
-                                .center, // center content vertically
-                            children: [
-                              Icon(Icons.group, size: 40, color: Colors.green),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Total Teachers',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '6 Active faculty',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 2,
-                      child: SizedBox(
-                        height: 180, // same height here
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.star, size: 40, color: Colors.amber),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Top Performer',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Mr. Muhammad Zahid\n93% rating',
-                                style: TextStyle(color: Colors.grey[600]),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  Image.asset('assets/images/logo.jpeg', height: 40),
                 ],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Manage section heading
               Text(
                 'Manage',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -171,124 +62,141 @@ class _HodState extends State<HodDashboard> {
 
               const SizedBox(height: 12),
 
-              // Buttons list
-              Column(
-                children: [
-                  buildManageButton(
-                    icon: Icons.add,
-                    label: 'Add KPI',
-                    description: 'Define new performance indicators',
-                    backgroundColor: Colors.green,
-                    onPressed: () {
-                         Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => AddKpiScreen(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  buildManageButton(
-                    icon: Icons.person_add,
-                    label: 'Add Peer Evaluator',
-                    description: 'Assign evaluators to teachers',
-                    backgroundColor: Colors.blue,
-                    onPressed: () {
-                       Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => AddPeerEvaluatorScreen(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  buildManageButton(
-                    icon: Icons.book,
-                    label: 'Course Management',
-                    description: 'Evaluate course submissions',
-                    backgroundColor: Colors.purple,
-                    onPressed: () {
-                      Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => Coursemanagementscreen(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  buildManageButton(
-                    icon: Icons.analytics,
-                    label: 'See Performance',
-                    description: 'View detailed analytics',
-                    backgroundColor: Colors.orange,
-                    onPressed: () {
-                       Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => SeePerformanceScreen(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  buildManageButton(
-                    icon: Icons.settings,
-                    label: 'CHR Points Settings',
-                    description: 'Configure CHR scoring rules',
-                    backgroundColor: Colors.lightGreen,
-                    onPressed: () {
-                       Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => Chrpointssettingscreen(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-                   
-                    const SizedBox(height: 12),
-                  buildManageButton(
-                    icon: Icons.group,
-                    label: 'Society Management',
-                    description: 'SMO Administration',
-                    backgroundColor: Colors.lightGreen,
-                    onPressed: () {
-                       Navigator.push(
-                            context,
-                          MaterialPageRoute(
-                     builder: (context) => Societydashboard(), // your target screen
-                         ),
-                      );
-                    },
-                  ),
-
-                ],
+              buildManageButton(
+                icon: Icons.add,
+                label: 'Add KPI',
+                description: 'Define new performance indicators',
+                backgroundColor: Colors.green,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AddKpiScreen()),
+                  );
+                },
               ),
 
-              
-              const SizedBox(height: 15),
+              const SizedBox(height: 12),
+
+              buildManageButton(
+                icon: Icons.person_add,
+                label: 'Add Peer Evaluator',
+                description: 'Assign evaluators to teachers',
+                backgroundColor: Colors.blue,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddPeerEvaluatorScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // ✅ PASS HOD ID HERE
+              buildManageButton(
+                icon: Icons.book,
+                label: 'Course Management',
+                description: 'Evaluate course submissions',
+                backgroundColor: Colors.purple,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          Coursemanagementscreen(hodId: hodId),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              buildManageButton(
+                icon: Icons.analytics,
+                label: 'See Performance',
+                description: 'View detailed analytics',
+                backgroundColor: Colors.orange,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SeePerformanceScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              buildManageButton(
+                icon: Icons.settings,
+                label: 'CHR Points Settings',
+                description: 'Configure CHR scoring rules',
+                backgroundColor: Colors.lightGreen,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Chrpointssettingscreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              buildManageButton(
+                icon: Icons.group,
+                label: 'Society Management',
+                description: 'SMO Administration',
+                backgroundColor: Colors.lightGreen,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Societydashboard()),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              buildManageButton(
+                icon: Icons.group,
+                label: 'Evaluate Society Chairperson',
+                description:
+                    "Evaluate the chairperson's leadership and management of the society ",
+                backgroundColor: Colors.lightGreen,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          Evaluatesocietychairpersons(teacherId: hodId),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => const Login()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
+                    backgroundColor: Colors.red,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                   child: const Text(
                     'Logout',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
@@ -303,20 +211,17 @@ class _HodState extends State<HodDashboard> {
     required IconData icon,
     required String label,
     required String description,
-    required Color backgroundColor, // used ONLY for icon color
+    required Color backgroundColor,
     required VoidCallback onPressed,
   }) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white, // ✅ card-like white
+        backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(
-            color: Colors.lightGreen,
-            width: 1.3,
-          ), // ✅ green border
+          side: BorderSide(color: Colors.lightGreen, width: 1.3),
         ),
         elevation: 0,
       ),
@@ -324,8 +229,8 @@ class _HodState extends State<HodDashboard> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: backgroundColor.withOpacity(0.15), // soft color bg
-            child: Icon(icon, color: backgroundColor), // ✅ original icon color
+            backgroundColor: backgroundColor.withOpacity(0.15),
+            child: Icon(icon, color: backgroundColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -334,24 +239,13 @@ class _HodState extends State<HodDashboard> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  description,
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                ),
+                Text(description, style: const TextStyle(fontSize: 12)),
               ],
             ),
           ),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: backgroundColor, // ✅ arrow matches icon color
-          ),
+          Icon(Icons.arrow_forward_ios, size: 16, color: backgroundColor),
         ],
       ),
     );

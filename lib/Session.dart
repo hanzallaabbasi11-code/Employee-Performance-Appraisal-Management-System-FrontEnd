@@ -19,4 +19,6 @@ class Session {
 
   @override
   int get hashCode => id.hashCode;
+
+  static get userId => null;
 }

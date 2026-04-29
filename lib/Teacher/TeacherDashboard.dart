@@ -25,7 +25,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
   bool isChecking = true;
   String teacherName = "";
   int? _evaluatorID;
-  String userId='';// fetched evaluator ID
+  String userId = ''; // fetched evaluator ID
 
   @override
   void initState() {
@@ -80,7 +80,8 @@ class TeacherdashboardState extends State<Teacherdashboard> {
       // 2️⃣ Get Evaluator ID for logged-in teacher
       final evaluatorResponse = await http.get(
         Uri.parse(
-            "$Url/TeacherDashboard/GetPeerEvaluatorID?userId=${widget.teacherID}"),
+          "$Url/TeacherDashboard/GetPeerEvaluatorID?userId=${widget.teacherID}",
+        ),
       );
 
       if (evaluatorResponse.statusCode == 200) {
@@ -152,6 +153,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                           MaterialPageRoute(
                             builder: (context) => Peerevaluation(
                               evaluatorID: _evaluatorID!,
+                              userId: widget.teacherID,
                             ),
                           ),
                         );
@@ -192,8 +194,10 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   children: [
                     const Text(
                       "KPI Metrics Overview",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     const Text(
@@ -265,9 +269,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => Classheldreport(),
-                    ),
+                    MaterialPageRoute(builder: (context) => Classheldreport()),
                   );
                 },
               ),
@@ -297,7 +299,9 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Evaluatesocietymentors(),
+                      builder: (context) => Evaluatesocietymentors(
+                        teacherId: widget.teacherID, // ✅ PASSING USER ID
+                      ),
                     ),
                   );
                 },
@@ -314,7 +318,8 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                     MaterialPageRoute(
                       builder: (context) => Teacherseeperformance(
                         teacherName: teacherName,
-                        userId: widget.teacherID,),
+                        userId: widget.teacherID,
+                      ),
                     ),
                   );
                 },
@@ -365,10 +370,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(
-            color: Colors.lightGreen,
-            width: 1.3,
-          ),
+          side: BorderSide(color: Colors.lightGreen, width: 1.3),
         ),
         elevation: 0,
       ),
@@ -399,11 +401,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
               ],
             ),
           ),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: backgroundColor,
-          ),
+          Icon(Icons.arrow_forward_ios, size: 16, color: backgroundColor),
         ],
       ),
     );

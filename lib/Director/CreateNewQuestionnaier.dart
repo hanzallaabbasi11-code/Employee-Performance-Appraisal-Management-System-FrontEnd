@@ -18,6 +18,8 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
     'Teacher Evaluation',
     'Peer Evaluation',
     'Confidential Evaluation',
+    'Society Chairperson',
+    'Society Mentor'
   ];
 
   final List<String> questions = [];

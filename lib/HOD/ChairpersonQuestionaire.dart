@@ -3,23 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:epams/Url.dart';
 
-class Evaluatementors extends StatefulWidget {
-  final Map mentorData;
+class ChairpersonQuestionnaire extends StatefulWidget {
+  final Map chairData;
   final int sessionId;
   final String evaluatorId;
 
-  const Evaluatementors({
+  const ChairpersonQuestionnaire({
     super.key,
-    required this.mentorData,
+    required this.chairData,
     required this.sessionId,
     required this.evaluatorId,
   });
 
   @override
-  State<Evaluatementors> createState() => _EvaluatementorsState();
+  State<ChairpersonQuestionnaire> createState() =>
+      _ChairpersonQuestionnaireState();
 }
 
-class _EvaluatementorsState extends State<Evaluatementors> {
+class _ChairpersonQuestionnaireState extends State<ChairpersonQuestionnaire> {
   List questions = [];
   Map<int, int> selectedScores = {};
   bool isLoading = true;
@@ -36,7 +37,7 @@ class _EvaluatementorsState extends State<Evaluatementors> {
     try {
       final response = await http.get(
         Uri.parse(
-          "$Url/SocietyEvaluation/GetActiveQuestionnaire?type=Society Mentor",
+          "$Url/SocietyEvaluation/GetActiveQuestionnaire?type=Society Chairperson",
         ),
       );
 
@@ -50,7 +51,9 @@ class _EvaluatementorsState extends State<Evaluatementors> {
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data["Message"] ?? "No questionnaire found")),
+            SnackBar(
+              content: Text(data["Message"] ?? "No questionnaire found"),
+            ),
           );
           return;
         }
@@ -65,9 +68,9 @@ class _EvaluatementorsState extends State<Evaluatementors> {
     } catch (e) {
       setState(() => isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
@@ -82,16 +85,16 @@ class _EvaluatementorsState extends State<Evaluatementors> {
     }
 
     List submissionData = questions.map((q) {
-  return {
-    "EvaluatorId": widget.evaluatorId,
-    "EvaluateeId": widget.mentorData['TeacherId'].toString(),
-    "SocietyId": widget.mentorData['SocietyId'],
-    "QuestionId": q['QuestionID'],
-    "Score": selectedScores[q['QuestionID']],
-    "SessionId": widget.sessionId,   // ✅ SEND SELECTED SESSION
-    "EvaluationType": "Mentor"
-  };
-}).toList();
+      return {
+        "EvaluatorId": widget.evaluatorId,
+        "EvaluateeId": widget.chairData['TeacherId'].toString(),
+        "SocietyId": widget.chairData['SocietyId'],
+        "QuestionId": q['QuestionID'],
+        "Score": selectedScores[q['QuestionID']],
+        "SessionId": widget.sessionId, // ⭐ ADD THIS
+        "EvaluationType": "Chairperson",
+      };
+    }).toList();
 
     try {
       final response = await http.post(
@@ -107,14 +110,14 @@ class _EvaluatementorsState extends State<Evaluatementors> {
           const SnackBar(content: Text("Evaluation Submitted Successfully")),
         );
 
-        Navigator.pop(context, true);
+        Navigator.pop(context, true); // ⭐ important (already correct)
       } else {
         throw Exception(result["error"]);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submission Failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Submission Failed: $e")));
     }
   }
 
@@ -123,35 +126,33 @@ class _EvaluatementorsState extends State<Evaluatementors> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F5),
-      appBar: AppBar(
-        title: const Text("Mentor Evaluation"),
-      ),
+      appBar: AppBar(title: const Text("Chairperson Evaluation")),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-
                 // ===== HEADER =====
-
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
-                  color: Colors.teal,
+                  color: Colors.green,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.mentorData['TeacherName'],
+                        widget.chairData['TeacherName'],
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
-                        widget.mentorData['SocietyName'],
-                        style:
-                            const TextStyle(color: Colors.white70, fontSize: 14),
+                        widget.chairData['SocietyName'],
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -160,7 +161,6 @@ class _EvaluatementorsState extends State<Evaluatementors> {
                 const SizedBox(height: 10),
 
                 // ===== QUESTIONS =====
-
                 Expanded(
                   child: ListView.builder(
                     itemCount: questions.length,
@@ -169,18 +169,16 @@ class _EvaluatementorsState extends State<Evaluatementors> {
 
                       return Card(
                         margin: const EdgeInsets.all(12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                         child: Padding(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(12),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 q['QuestionText'],
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
 
                               const SizedBox(height: 10),
@@ -198,22 +196,20 @@ class _EvaluatementorsState extends State<Evaluatementors> {
                 ),
 
                 // ===== SUBMIT BUTTON =====
-
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
+                        backgroundColor: Colors.green,
                         padding: const EdgeInsets.all(14),
                       ),
-                      icon: const Icon(Icons.send),
-                      label: const Text("Submit Evaluation"),
                       onPressed: submitEvaluation,
+                      child: const Text("Submit Evaluation"),
                     ),
                   ),
-                )
+                ),
               ],
             ),
     );
@@ -224,7 +220,6 @@ class _EvaluatementorsState extends State<Evaluatementors> {
       title: Text(label),
       value: value,
       groupValue: selectedScores[questionId],
-      activeColor: Colors.teal,
       onChanged: (val) {
         setState(() {
           selectedScores[questionId] = val!;

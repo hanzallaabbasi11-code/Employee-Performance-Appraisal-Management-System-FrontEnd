@@ -91,8 +91,8 @@ class _SocietydashboardState extends State<Societydashboard> {
                   IconButton(
                     icon: const Icon(Icons.logout),
                     onPressed: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (context)=>HodDashboard()));
+                      Navigator.pop(context,
+                          MaterialPageRoute(builder: (context)=>HodDashboard(hodId: '',)));
                     },
                   )
                 ],

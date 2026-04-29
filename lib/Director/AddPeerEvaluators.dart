@@ -17,17 +17,14 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
 
   Session? selectedSession;
 
-  // List of all teachers loaded on init
   List<Map<String, dynamic>> teachers = [];
-
-  // List of selected teachers to add as peer evaluators
   List<Map<String, dynamic>> selectedTeachers = [];
 
   @override
   void initState() {
     super.initState();
     _sessionsFuture = fetchSessions();
-    fetchAllTeachers(); // Load all teachers on start
+    fetchAllTeachers();
   }
 
   Future<List<Session>> fetchSessions() async {
@@ -52,33 +49,33 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
 
     if (response.statusCode == 200) {
       List data = json.decode(response.body);
+
       setState(() {
         teachers = data.map<Map<String, dynamic>>((t) {
+          bool isPermanent = (t['isPermanentEvaluator'] ?? 0) == 1;
+
           return {
             'id': t['userID'],
             'name': t['name'],
-            'subject': t['department'], // Using department as subject here
+            'subject': t['department'],
             'dept': t['department'],
-            'isSelected': false,
+            'isSelected': isPermanent,
+            'isPermanent': isPermanent,
           };
         }).toList();
 
-        selectedTeachers.clear();
+        selectedTeachers = teachers
+            .where((t) => t['isSelected'] == true)
+            .toList();
       });
-    } else {
-      setState(() {
-        teachers = [];
-        selectedTeachers = [];
-      });
-      throw Exception('Failed to load teachers');
     }
   }
 
   Future<void> addPeerEvaluators() async {
     if (selectedSession == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a session')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a session')));
       return;
     }
 
@@ -106,20 +103,160 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Peer evaluators added successfully')),
       );
-
-      // Optionally, clear selection after success
-      setState(() {
-        for (var teacher in teachers) {
-          teacher['isSelected'] = false;
-        }
-        selectedTeachers.clear();
-      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to add peer evaluators')),
       );
     }
   }
+
+  /// ----------------------------------------------------------
+  /// PERMANENT EVALUATOR MODAL
+  /// ----------------------------------------------------------
+
+  void openPermanentModal() {
+    List<Map<String, dynamic>> modalTeachers = teachers
+        .map((t) => Map<String, dynamic>.from(t))
+        .toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      builder: (context) {
+        TextEditingController searchController = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            List filteredTeachers = modalTeachers.where((t) {
+              return t['name'].toLowerCase().contains(
+                searchController.text.toLowerCase(),
+              );
+            }).toList();
+
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.9,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    /// HEADER
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "PERMANENT EVALUATOR",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    /// SEARCH
+                    TextField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        hintText: "Search faculty by name...",
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (v) {
+                        setModalState(() {});
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    /// LIST
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredTeachers.length,
+                        itemBuilder: (context, index) {
+                          final teacher = filteredTeachers[index];
+
+                          return Card(
+                            color: teacher['isPermanent']
+                                ? Colors.green.shade50
+                                : null,
+                            child: CheckboxListTile(
+                              value: teacher['isPermanent'],
+                              title: Text(teacher['name']),
+                              subtitle: Text(teacher['dept']),
+                              onChanged: (val) {
+                                setModalState(() {
+                                  teacher['isPermanent'] = val;
+                                });
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    /// SAVE BUTTON
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      onPressed: () async {
+                        List<String> selectedIds = modalTeachers
+                            .where((t) => t['isPermanent'] == true)
+                            .map<String>((t) => t['id'])
+                            .toList();
+
+                        await http.post(
+                          Uri.parse('$Url/PeerEvaluator/SetBulkPermanent'),
+                          headers: {'Content-Type': 'application/json'},
+                          body: jsonEncode(selectedIds),
+                        );
+
+                        /// UPDATE MAIN SCREEN STATE
+                        setState(() {
+                          for (var teacher in teachers) {
+                            bool isPermanent = selectedIds.contains(
+                              teacher['id'],
+                            );
+
+                            teacher['isPermanent'] = isPermanent;
+                            teacher['isSelected'] = isPermanent;
+
+                            if (isPermanent) {
+                              if (!selectedTeachers.any(
+                                (t) => t['id'] == teacher['id'],
+                              )) {
+                                selectedTeachers.add(teacher);
+                              }
+                            } else {
+                              selectedTeachers.removeWhere(
+                                (t) => t['id'] == teacher['id'],
+                              );
+                            }
+                          }
+                        });
+
+                        Navigator.pop(context);
+                      },
+                      child: const Text("SAVE & EXIT"),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// ----------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -130,10 +267,18 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// HEADER
               const Text(
                 'Add Peer Evaluator',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 12),
+
+              /// NEW BUTTON
+              ElevatedButton.icon(
+                icon: const Icon(Icons.settings),
+                label: const Text("Manage Permanent Evaluators"),
+                onPressed: openPermanentModal,
               ),
 
               const SizedBox(height: 12),
@@ -173,7 +318,6 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
 
               const SizedBox(height: 16),
 
-              /// SECTION TITLE
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(8),
@@ -186,7 +330,7 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
 
               const SizedBox(height: 8),
 
-              /// TEACHERS LIST (All loaded on init)
+              /// TEACHERS LIST
               ...teachers.map((teacher) {
                 return Card(
                   color: teacher['isSelected'] ? Colors.green.shade50 : null,
@@ -200,20 +344,22 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
                           selectedTeachers.add(teacher);
                         } else {
                           selectedTeachers.removeWhere(
-                              (t) => t['id'] == teacher['id']);
+                            (t) => t['id'] == teacher['id'],
+                          );
                         }
                       });
                     },
                     title: Text(teacher['name']),
                     subtitle: Text(teacher['subject']),
-                    secondary: Text(teacher['dept']),
+                    secondary: teacher['isPermanent']
+                        ? const Icon(Icons.verified, color: Colors.green)
+                        : null,
                   ),
                 );
               }),
 
               const SizedBox(height: 12),
 
-              /// ADD BUTTON
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
@@ -221,42 +367,14 @@ class _AddpeerevaluatorsState extends State<Addpeerevaluators> {
                 ),
                 icon: const Icon(Icons.add),
                 label: Text(
-                    'Add ${selectedTeachers.length} Selected Teachers as Peer Evaluators'),
+                  'Add ${selectedTeachers.length} Selected Teachers as Peer Evaluators',
+                ),
                 onPressed: selectedTeachers.isEmpty || selectedSession == null
                     ? null
                     : () async {
                         await addPeerEvaluators();
                       },
               ),
-
-              const SizedBox(height: 20),
-
-              /// CURRENT PEER EVALUATORS (show selected ones)
-              Text(
-                'Selected Teachers',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 8),
-
-              ...selectedTeachers.map((teacher) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.person),
-                      title: Text(teacher['name']),
-                      subtitle: Text(teacher['subject']),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.person_remove, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            teacher['isSelected'] = false;
-                            selectedTeachers.removeWhere(
-                                (t) => t['id'] == teacher['id']);
-                          });
-                        },
-                      ),
-                    ),
-                  )),
             ],
           ),
         ),

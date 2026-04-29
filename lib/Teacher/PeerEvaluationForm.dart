@@ -8,13 +8,14 @@ import 'package:http/http.dart' as http;
 class Peerevaluationform extends StatefulWidget {
   final TeacherModel teacher;
   final QuestionnaireModel questionnaire;
-  final int evaluatorID; // 👈 Fetched evaluator ID from backend
+  final String evaluatorUserId;
+  // 👈 Fetched evaluator ID from backend
 
   const Peerevaluationform({
     super.key,
     required this.teacher,
     required this.questionnaire,
-    required this.evaluatorID,
+    required this.evaluatorUserId,
   });
 
   @override
@@ -47,19 +48,25 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
       return;
     }
 
-    List<Map<String, dynamic>> payload = [];
+    List<Map<String, dynamic>> answerList = [];
 
     for (var q in widget.questionnaire.questions) {
-      payload.add({
-        "evaluatorID": widget.evaluatorID, // 👈 Pass fetched evaluator ID
-        "evaluateeID": widget.teacher.teacherID,
-        "questionID": q.questionID,
-        "courseCode": widget.teacher.courses.isNotEmpty
-            ? widget.teacher.courses.first
-            : "",
-        "score": getScore(answers[q.questionID]!),
+      answerList.add({
+        "QuestionId": q.questionID,
+        "Score": getScore(answers[q.questionID]!),
       });
     }
+
+    Map<String, dynamic> payload = {
+      "EvaluatorUserId": widget.evaluatorUserId,
+      "EvaluateeId": widget.teacher.teacherID,
+      "CourseCode": widget.teacher.courses.isNotEmpty
+          ? widget.teacher.courses.first
+          : "",
+      "Answers": answerList,
+    };
+
+    print("Payload: ${jsonEncode(payload)}");
 
     try {
       final response = await http.post(
@@ -69,24 +76,20 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
       );
 
       print("Status Code: ${response.statusCode}");
-print("Response Body: ${response.body}");
+      print("Response Body: ${response.body}");
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.body.contains("success")) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Evaluation Submitted Successfully")),
         );
-
-        Navigator.pop(context, true); // 👈 return success
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Submission Failed")),
+          SnackBar(content: Text("Server Error: ${response.body}")),
         );
       }
     } catch (e) {
       print("Submit Error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("An error occurred while submitting")),
-      );
     }
   }
 
