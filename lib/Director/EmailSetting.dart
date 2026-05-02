@@ -8,11 +8,13 @@ class EmailModel {
   final int id;
   final String mail;
   final bool isActive;
+  final String? password;
 
   EmailModel({
     required this.id,
     required this.mail,
     required this.isActive,
+    required this.password
   });
 
   factory EmailModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class EmailModel {
       id: json['id'],
       mail: json['mail'],
       isActive: json['isActive'],
+      password: json['password'],
     );
   }
 }
@@ -33,6 +36,7 @@ class Emailsetting extends StatefulWidget {
 
 class _EmailsettingState extends State<Emailsetting> {
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController=TextEditingController();
 
   List<EmailModel> emails = [];
   bool isLoading = true;
@@ -63,11 +67,12 @@ class _EmailsettingState extends State<Emailsetting> {
   }
 
   // ✅ ADD EMAIL
-  Future<void> addEmail(String email) async {
+  Future<void> addEmail(String email,String password) async {
     final response = await http.post(
       Uri.parse("${baseUrl}add"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"mail": email}),
+      body: jsonEncode({"mail": email,
+                        "password":password}),
     );
 
     if (response.statusCode == 200) {
@@ -106,7 +111,7 @@ class _EmailsettingState extends State<Emailsetting> {
   }
 
   EmailModel? get activeEmail =>
-      emails.firstWhere((e) => e.isActive, orElse: () => EmailModel(id: 0, mail: "No Active Email", isActive: false));
+      emails.firstWhere((e) => e.isActive, orElse: () => EmailModel(id: 0, mail: "No Active Email", isActive: false,password: "Not matched"));
 
   @override
   Widget build(BuildContext context) {
@@ -210,6 +215,27 @@ class _EmailsettingState extends State<Emailsetting> {
                           ),
                         ),
                         const SizedBox(height: 15),
+
+                        const Text(
+                          "Enter Password",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: passwordController,
+                          decoration: InputDecoration(
+                            hintText: "123",
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -217,8 +243,9 @@ class _EmailsettingState extends State<Emailsetting> {
                               backgroundColor: Colors.green,
                             ),
                             onPressed: () {
-                              if (emailController.text.isNotEmpty) {
-                                addEmail(emailController.text);
+                              if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
+                                addEmail(emailController.text,passwordController.text);
+                                
                               }
                             },
                             child: const Text("Add Email"),

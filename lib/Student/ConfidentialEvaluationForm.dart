@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:epams/Student/Confidential_db.dart';
+//import 'package:epams/Student/Confidential_db.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -78,18 +78,18 @@ class _ConfidentialevaluationformState
     try {
 
       /// 🔹 Save answers in SQLite
-      for (var question in questions) {
+      // for (var question in questions) {
 
-        await ConfidentialDB.insertEvaluation(
-          session: DateTime.now().year.toString(),
-          courseCode: widget.courseCode,
-          courseName: widget.courseName,
-          teacherName: widget.teacherName,
-          question: question.questionText,
-          answer: selectedAnswers[question.questionID]!,
-        );
+      //   await ConfidentialDB.insertEvaluation(
+      //     session: DateTime.now().year.toString(),
+      //     courseCode: widget.courseCode,
+      //     courseName: widget.courseName,
+      //     teacherName: widget.teacherName,
+      //     question: question.questionText,
+      //     answer: selectedAnswers[question.questionID]!,
+      //   );
 
-      }
+      // }
 
       /// 🔹 Existing Backend API (Email)
       final response = await http.post(
