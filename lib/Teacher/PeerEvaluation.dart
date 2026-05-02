@@ -28,47 +28,70 @@ class _PeerevaluationState extends State<Peerevaluation> {
   @override
   void initState() {
     super.initState();
-    initialize();
+    init();
   }
 
-  Future<void> initialize() async {
+  Future<void> init() async {
     await fetchTeachers();
     await fetchSubmittedEvaluations();
   }
 
   Future<void> fetchTeachers() async {
-    final response = await http.get(
-      Uri.parse(
-        '$Url/TeacherDashboard/GetTeachersWithCourses/${widget.userId}',
-      ),
-    );
+    try {
+      final res = await http.get(
+        Uri.parse(
+          "$Url/TeacherDashboard/GetTeachersWithCourses?userId=${widget.userId}",
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
 
-      teachers = data.map<TeacherModel>((e) {
-        return TeacherModel.fromJson(e);
-      }).toList();
+        if (data is List) {
+          teachers = data
+              .map<TeacherModel>(
+                (e) => TeacherModel.fromJson(e),
+              )
+              .toList();
+        } else {
+          teachers = [];
+        }
+      }
+
+      print(res.body);
+    } catch (e) {
+      teachers = [];
+      print("fetchTeachers error: $e");
     }
 
-    setState(() {
-      isLoading = false;
-    });
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> fetchSubmittedEvaluations() async {
-    final response = await http.get(
-      Uri.parse(
-        "$Url/TeacherDashboard/GetSubmittedEvaluations/${widget.evaluatorID}",
-      ),
-    );
+    try {
+      final res = await http.get(
+        Uri.parse(
+          "$Url/TeacherDashboard/GetSubmittedEvaluations?evaluatorID=${widget.evaluatorID}",
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
 
-      evaluatedTeachers = data
-          .map<String>((item) => "${item["TeacherID"]}-${item["CourseCode"]}")
-          .toSet();
+        if (mounted) {
+          setState(() {
+            evaluatedTeachers = data
+                .map<String>(
+                  (e) => "${e["TeacherID"]}-${e["CourseCode"]}",
+                )
+                .toSet();
+          });
+        }
+      }
+    } catch (e) {
+      print("fetchSubmittedEvaluations error: $e");
     }
   }
 
@@ -78,70 +101,69 @@ class _PeerevaluationState extends State<Peerevaluation> {
       appBar: AppBar(title: const Text("Teacher Evaluation")),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: teachers.length,
-              itemBuilder: (context, index) {
-                final teacher = teachers[index];
+          : teachers.isEmpty
+              ? const Center(child: Text("No Teachers Found"))
+              : ListView.builder(
+                  itemCount: teachers.length,
+                  itemBuilder: (context, index) {
+                    final t = teachers[index];
 
-                final course = teacher.courses.isNotEmpty
-                    ? teacher.courses.first
-                    : "";
+                    final courses = t.courses ?? [];
 
-                final key = "${teacher.teacherID}-$course";
+                    if (courses.isEmpty) {
+                      return const SizedBox(); // safe skip
+                    }
 
-                final alreadyEvaluated = evaluatedTeachers.contains(key);
+                    return Column(
+                      children: courses.map((course) {
+                        final key = "${t.teacherID}-$course";
+                        final done = evaluatedTeachers.contains(key);
 
-                return Card(
-                  margin: const EdgeInsets.all(10),
-                  child: ListTile(
-                    title: Text(
-                      teacher.teacherName,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text("Courses: ${teacher.courses.join(", ")}"),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: alreadyEvaluated
-                            ? Colors.grey
-                            : Colors.green,
-                      ),
-                      onPressed: alreadyEvaluated
-                          ? null
-                          : () async {
-                              final response = await http.get(
-                                Uri.parse(
-                                  "$Url/TeacherDashboard/GetActiveQuestionnaire",
-                                ),
-                              );
+                        return Card(
+                          child: ListTile(
+                            title: Text(t.teacherName),
+                            subtitle: Text("Course: $course"),
+                            trailing: ElevatedButton(
+                              onPressed: done
+                                  ? null
+                                  : () async {
+                                      final q = await http.get(
+                                        Uri.parse(
+                                          "$Url/TeacherDashboard/GetActiveQuestionnaire",
+                                        ),
+                                      );
 
-                              if (response.statusCode == 200) {
-                                final questionnaire =
-                                    QuestionnaireModel.fromJson(
-                                      jsonDecode(response.body),
-                                    );
+                                      if (q.statusCode != 200) return;
 
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => Peerevaluationform(
-                                      teacher: teacher,
-                                      questionnaire: questionnaire,
-                                      evaluatorUserId: widget.userId,
-                                    ),
-                                  ),
-                                );
+                                      final questionnaire =
+                                          QuestionnaireModel.fromJson(
+                                        jsonDecode(q.body),
+                                      );
 
-                                if (result == true) {
-                                  fetchSubmittedEvaluations();
-                                }
-                              }
-                            },
-                      child: Text(alreadyEvaluated ? "Evaluated" : "Evaluate"),
-                    ),
-                  ),
-                );
-              },
-            ),
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => Peerevaluationform(
+                                            teacher: t,
+                                            questionnaire: questionnaire,
+                                            evaluatorID: widget.evaluatorID,
+                                            courseCode: course,
+                                          ),
+                                        ),
+                                      );
+
+                                      if (result == true) {
+                                        await fetchSubmittedEvaluations();
+                                      }
+                                    },
+                              child: Text(done ? "Evaluated" : "Evaluate"),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
     );
   }
 }

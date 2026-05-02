@@ -8,14 +8,13 @@ import 'package:http/http.dart' as http;
 class Peerevaluationform extends StatefulWidget {
   final TeacherModel teacher;
   final QuestionnaireModel questionnaire;
-  final String evaluatorUserId;
-  // 👈 Fetched evaluator ID from backend
+  final int evaluatorID;
 
   const Peerevaluationform({
     super.key,
     required this.teacher,
     required this.questionnaire,
-    required this.evaluatorUserId,
+    required this.evaluatorID, required String courseCode,
   });
 
   @override
@@ -48,25 +47,20 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
       return;
     }
 
-    List<Map<String, dynamic>> answerList = [];
+    /// ✅ FIXED: backend expects List<PeerEvaluation>
+    List<Map<String, dynamic>> payload = [];
 
     for (var q in widget.questionnaire.questions) {
-      answerList.add({
-        "QuestionId": q.questionID,
-        "Score": getScore(answers[q.questionID]!),
+      payload.add({
+        "evaluatorID": widget.evaluatorID,
+        "evaluateeID": widget.teacher.teacherID,
+        "questionID": q.questionID,
+        "courseCode": widget.teacher.courses.isNotEmpty
+            ? widget.teacher.courses.first
+            : "",
+        "score": getScore(answers[q.questionID] ?? ""),
       });
     }
-
-    Map<String, dynamic> payload = {
-      "EvaluatorUserId": widget.evaluatorUserId,
-      "EvaluateeId": widget.teacher.teacherID,
-      "CourseCode": widget.teacher.courses.isNotEmpty
-          ? widget.teacher.courses.first
-          : "",
-      "Answers": answerList,
-    };
-
-    print("Payload: ${jsonEncode(payload)}");
 
     try {
       final response = await http.post(
@@ -75,21 +69,22 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
         body: jsonEncode(payload),
       );
 
-      print("Status Code: ${response.statusCode}");
-      print("Response Body: ${response.body}");
-
-      if (response.statusCode == 200 && response.body.contains("success")) {
+      if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Evaluation Submitted Successfully")),
         );
+
+        /// return success to refresh previous screen
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Server Error: ${response.body}")),
+          SnackBar(content: Text("Error: ${response.body}")),
         );
       }
     } catch (e) {
-      print("Submit Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Submission Failed: $e")),
+      );
     }
   }
 
@@ -100,7 +95,7 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Teacher Info
+          /// Teacher Info (UNCHANGED)
           Card(
             color: Colors.green,
             child: Padding(
@@ -111,9 +106,10 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
               ),
             ),
           ),
+
           const SizedBox(height: 20),
 
-          // Questions
+          /// Questions (UNCHANGED UI)
           ...widget.questionnaire.questions.map((q) {
             return Card(
               child: Padding(
@@ -126,6 +122,7 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
+
                     Column(
                       children: ["Excellent", "Good", "Average", "Poor"]
                           .map(
@@ -146,10 +143,11 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
                 ),
               ),
             );
-          }).toList(),
+          }),
 
           const SizedBox(height: 20),
 
+          /// Submit Button (UNCHANGED UI)
           ElevatedButton(
             onPressed: submitEvaluation,
             style: ElevatedButton.styleFrom(
