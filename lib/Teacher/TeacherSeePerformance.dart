@@ -6,82 +6,24 @@ import 'package:epams/Url.dart';
 
 class Teacherseeperformance extends StatefulWidget {
   final String teacherName;
-  final String userId; // userId required to call API
+  final String userId;
 
-  const Teacherseeperformance({super.key, required this.teacherName, required this.userId});
-
-  @override
-  State<Teacherseeperformance> createState() => _TeacherseeperformanceState();
-}
-
-// ----------------- MODELS -----------------
-class SubKpi {
-  final String name;
-  final int score;
-  final int total;
-
-  SubKpi({required this.name, required this.score, required this.total});
-
-  factory SubKpi.fromJson(Map<String, dynamic> json) {
-    return SubKpi(
-      name: json['Name'],
-      score: json['Score'],
-      total: json['Total'],
-    );
-  }
-}
-
-class Kpi {
-  final String name;
-  final int score;
-  final int total;
-  final List<SubKpi> subKpis;
-
-  Kpi({required this.name, required this.score, required this.total, required this.subKpis});
-
-  factory Kpi.fromJson(Map<String, dynamic> json) {
-    var subKpisJson = json['SubKpis'] as List;
-    List<SubKpi> subKpisList = subKpisJson.map((e) => SubKpi.fromJson(e)).toList();
-    return Kpi(
-      name: json['Name'],
-      score: json['Score'],
-      total: json['Total'],
-      subKpis: subKpisList,
-    );
-  }
-}
-
-class Performance {
-  final List<Kpi> kpis;
-  final int overallPercentage;
-  final int obtainedPoints;
-  final int totalPoints;
-
-  Performance({
-    required this.kpis,
-    required this.overallPercentage,
-    required this.obtainedPoints,
-    required this.totalPoints,
+  const Teacherseeperformance({
+    super.key,
+    required this.teacherName,
+    required this.userId,
   });
 
-  factory Performance.fromJson(Map<String, dynamic> json) {
-    var kpisJson = json['Kpis'] as List;
-    List<Kpi> kpiList = kpisJson.map((e) => Kpi.fromJson(e)).toList();
-
-    return Performance(
-      kpis: kpiList,
-      overallPercentage: json['OverallPercentage'],
-      obtainedPoints: json['ObtainedPoints'],
-      totalPoints: json['TotalPoints'],
-    );
-  }
+  @override
+  State<Teacherseeperformance> createState() =>
+      _TeacherseeperformanceState();
 }
 
-// ----------------- SCREEN -----------------
 class _TeacherseeperformanceState extends State<Teacherseeperformance> {
   late Future<List<Session>> _sessionsFuture;
   Session? selectedSession;
-  Performance? _teacherPerformance;
+
+  Map<String, dynamic>? _teacherPerformance;
 
   @override
   void initState() {
@@ -89,7 +31,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
     _sessionsFuture = fetchSessions();
   }
 
-  // Fetch sessions
+  // ================= FETCH SESSIONS =================
   Future<List<Session>> fetchSessions() async {
     final response = await http.get(
       Uri.parse('$Url/PeerEvaluator/Sessions'),
@@ -104,21 +46,42 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
     }
   }
 
-  // Fetch performance for selected session
-  Future<Performance> fetchPerformance(String userId, int sessionId) async {
+  // ================= FETCH PERFORMANCE =================
+  Future<Map<String, dynamic>> fetchPerformance(
+      String userId, int sessionId) async {
     final response = await http.get(
-      Uri.parse('$Url/teacher/performance/SeeOwnPerformance?userId=$userId&sessionId=$sessionId'),
+      Uri.parse(
+          '$Url/teacher/performance/GetTeacherPerformanceAnalytics/$userId/$sessionId'),
       headers: {'Content-Type': 'application/json'},
     );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return Performance.fromJson(data);
+
+      if (data["Status"] == "Empty") {
+        throw Exception(data["Message"]);
+      }
+
+      return data;
     } else {
       throw Exception('Failed to load performance');
     }
   }
 
+  // ================= HELPERS =================
+  double _getTotalAchieved() {
+    if (_teacherPerformance == null) return 0;
+    return (_teacherPerformance!["Breakdown"] as List)
+        .fold(0.0, (sum, kpi) => sum + (kpi["KPIAchieved"] ?? 0));
+  }
+
+  double _getTotalWeight() {
+    if (_teacherPerformance == null) return 0;
+    return (_teacherPerformance!["Breakdown"] as List)
+        .fold(0.0, (sum, kpi) => sum + (kpi["KPIWeight"] ?? 0));
+  }
+
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,8 +96,10 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("My Performance", style: TextStyle(color: Colors.black, fontSize: 18)),
-            Text(widget.teacherName, style: const TextStyle(color: Colors.grey, fontSize: 13))
+            const Text("My Performance",
+                style: TextStyle(color: Colors.black, fontSize: 18)),
+            Text(widget.teacherName,
+                style: const TextStyle(color: Colors.grey, fontSize: 13))
           ],
         ),
       ),
@@ -142,7 +107,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Current session bar
+            // SESSION BAR
             Container(
               height: 40,
               width: double.infinity,
@@ -153,23 +118,28 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
               child: Center(
                 child: Text(
                   "Current Session: ${selectedSession?.name ?? "No Session Selected"}",
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
 
-            // Session dropdown
+            // DROPDOWN
             FutureBuilder<List<Session>>(
               future: _sessionsFuture,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
                   return const CircularProgressIndicator();
                 }
                 if (snapshot.hasError) {
                   return const Text('Failed to load sessions');
                 }
+
                 final sessions = snapshot.data!;
+
                 return DropdownButtonFormField<Session>(
                   value: selectedSession,
                   hint: const Text('Select Session'),
@@ -184,20 +154,30 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                       selectedSession = val;
                       _teacherPerformance = null;
                     });
+
                     if (val != null) {
-                      final performance = await fetchPerformance(widget.userId, val.id);
-                      setState(() {
-                        _teacherPerformance = performance;
-                      });
+                      try {
+                        final performance =
+                            await fetchPerformance(widget.userId, val.id);
+
+                        setState(() {
+                          _teacherPerformance = performance;
+                        });
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(e.toString())),
+                        );
+                      }
                     }
                   },
                   decoration: _inputDecoration(),
                 );
               },
             ),
+
             const SizedBox(height: 20),
 
-            // Overall performance
+            // OVERALL CARD
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -214,20 +194,25 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                       color: Colors.green,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.trending_up, color: Colors.white),
+                    child: const Icon(Icons.trending_up,
+                        color: Colors.white),
                   ),
                   const SizedBox(width: 15),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Overall Performance", style: TextStyle(color: Colors.grey)),
+                      const Text("Overall Performance",
+                          style: TextStyle(color: Colors.grey)),
                       const SizedBox(height: 5),
                       Text(
-                        '${_teacherPerformance?.overallPercentage ?? 0}%',
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+                        '${_teacherPerformance?["OverallPercentage"] ?? 0}%',
+                        style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green),
                       ),
                       Text(
-                        '(${_teacherPerformance?.obtainedPoints ?? 0} / ${_teacherPerformance?.totalPoints ?? 0} points)',
+                        '(${_getTotalAchieved()} / ${_getTotalWeight()} points)',
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -235,19 +220,30 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                 ],
               ),
             ),
+
             const SizedBox(height: 20),
 
-            // KPI cards
+            // KPI LIST
             if (_teacherPerformance != null)
               Column(
-                children: _teacherPerformance!.kpis.map((kpi) {
+                children:
+                    (_teacherPerformance!["Breakdown"] as List).map((kpi) {
                   return Column(
                     children: [
                       performanceCard(
-                        title: kpi.name,
-                        score: '${kpi.score} / ${kpi.total}',
-                        progress: kpi.total > 0 ? kpi.score / kpi.total : 0,
-                        items: kpi.subKpis.map((sub) => [sub.name, '${sub.score} / ${sub.total}']).toList(),
+                        title: kpi["KPIName"],
+                        score:
+                            '${kpi["KPIAchieved"]} / ${kpi["KPIWeight"]}',
+                        progress: kpi["KPIWeight"] == 0
+                            ? 0
+                            : (kpi["KPIAchieved"] /
+                                kpi["KPIWeight"]),
+                        items: (kpi["SubDetails"] as List)
+                            .map<List<String>>((sub) => [
+                                  sub["SubName"],
+                                  '${sub["SubAchieved"]} / ${sub["SubMax"]}'
+                                ])
+                            .toList(),
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -262,7 +258,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
     );
   }
 
-  // PERFORMANCE CARD WIDGET
+  // ================= KPI CARD =================
   Widget performanceCard({
     required String title,
     required String score,
@@ -282,8 +278,13 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text(score, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(score,
+                  style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 10),
@@ -299,7 +300,8 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
                   children: [Text(item[0]), Text(item[1])],
                 ),
               );

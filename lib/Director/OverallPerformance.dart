@@ -179,7 +179,16 @@ class _OverallperformanceState extends State<Overallperformance> {
           const SizedBox(height: 5),
           Align(
             alignment: Alignment.centerRight,
-            child: Text("${percent.toStringAsFixed(1)}%"),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text("${percent.toStringAsFixed(1)}%"),
+                Text(
+                  "${kpi['KPIAchieved']} / ${kpi['KPIWeight']}",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 10),
