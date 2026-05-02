@@ -3,6 +3,7 @@ import 'package:epams/Director/AddPeerEvaluators.dart';
 import 'package:epams/Director/ConfidentialEvaluation.dart';
 import 'package:epams/Director/EmailSetting.dart';
 import 'package:epams/Director/MakeQuestioner.dart';
+import 'package:epams/Director/OverallPerformance.dart';
 import 'package:epams/Director/SeePerformance.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
@@ -185,6 +186,28 @@ class _DirectordashboardState extends State<Directordashboard> {
                       },
                     ),
                   ),
+
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: dashboardCard(
+                      icon: Icons.bar_chart,
+                      title: 'See Overall Performance',
+                      subtitle:
+                          'View employee overall performance in all kpis',
+                      onTap: () {
+
+                        Navigator.push(
+                            context,
+                          MaterialPageRoute(
+                     builder: (context) => const Overallperformance() , // your target screen
+                         ),
+                      );
+                      },
+                    ),
+                  ),
+
                   const SizedBox(height: 12),
 
                   SizedBox(
