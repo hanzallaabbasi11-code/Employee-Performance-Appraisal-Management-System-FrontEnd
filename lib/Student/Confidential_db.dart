@@ -6,7 +6,6 @@ class ConfidentialDB {
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
-
     _database = await initDB();
     return _database!;
   }
@@ -18,7 +17,6 @@ class ConfidentialDB {
       path,
       version: 1,
       onCreate: (db, version) async {
-
         await db.execute('''
         CREATE TABLE evaluations(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +28,6 @@ class ConfidentialDB {
           answer TEXT
         )
         ''');
-
       },
     );
   }
@@ -43,7 +40,6 @@ class ConfidentialDB {
     required String question,
     required String answer,
   }) async {
-
     final db = await database;
 
     await db.insert(
@@ -59,8 +55,67 @@ class ConfidentialDB {
     );
   }
 
-  static Future<List<Map<String, dynamic>>> getEvaluations() async {
-    final db = await database;
-    return await db.query("evaluations");
+  static int getScore(String value) {
+    switch (value) {
+      case "Excellent":
+        return 4;
+      case "Good":
+        return 3;
+      case "Average":
+        return 2;
+      case "Poor":
+        return 1;
+      default:
+        return 0;
+    }
   }
+
+  /// 🔹 NEW: EXACT MATCH WITH REACT (AVG BASED)
+  static Future<double> getAverageScore({
+  required String teacherName,
+  required String session,
+}) async {
+  final db = await database;
+
+  /// 🔥 Extract year from session name (Spring 2026 → 2026)
+  String extractedYear = session.replaceAll(RegExp(r'[^0-9]'), '');
+
+  List<Map<String, dynamic>> data = [];
+
+  /// 🔥 Try exact match first
+  data = await db.query(
+    "evaluations",
+    where: "teacherName = ? AND session = ?",
+    whereArgs: [teacherName, session],
+  );
+
+  /// 🔥 If no data → fallback to year match
+  if (data.isEmpty && extractedYear.isNotEmpty) {
+    data = await db.query(
+      "evaluations",
+      where: "teacherName = ? AND session = ?",
+      whereArgs: [teacherName, extractedYear],
+    );
+  }
+
+  /// 🔥 LAST fallback → only teacher match
+  if (data.isEmpty) {
+    data = await db.query(
+      "evaluations",
+      where: "teacherName = ?",
+      whereArgs: [teacherName],
+    );
+  }
+
+  if (data.isEmpty) return 0;
+
+  double total = 0;
+
+  for (var row in data) {
+    total += getScore(row['answer'].toString());
+  }
+
+  return total / data.length;
+}
+
 }

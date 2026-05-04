@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:epams/Student/Confidential_db.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -73,6 +74,67 @@ class _OverallperformanceState extends State<Overallperformance> {
         );
         return;
       }
+
+      /// 🔥 LOCAL AVG
+      final teacherName = (data["TeacherName"] ?? "").toString().trim();
+      final sessionName = (data["SessionName"] ?? "").toString();
+
+      double avgScore = await ConfidentialDB.getAverageScore(
+        teacherName: teacherName,
+        session: sessionName,
+      );
+
+      bool hasLocalData = avgScore > 0;
+
+      double totalEarned = 0;
+      double totalMax = 0;
+
+      List breakdown = data["Breakdown"];
+
+      for (var kpi in breakdown) {
+        totalMax += (kpi["KPIWeight"] ?? 0);
+
+        double kpiPoints = 0;
+
+        for (var sub in kpi["SubDetails"]) {
+          String subName = (sub["SubName"] ?? "").toString().toLowerCase();
+
+          double achievedSync;
+
+          if (subName.contains("confidential") && hasLocalData) {
+            double maxScale = (sub["MaxScale"] ?? 4).toDouble();
+            double subMax = (sub["SubMax"] ?? 0).toDouble();
+
+            /// 🔥 FIX: convert avg into percentage first
+            double percentage = avgScore / maxScale;
+
+            /// clamp between 0 and 1
+            if (percentage > 1) percentage = 1;
+            if (percentage < 0) percentage = 0;
+
+            achievedSync = percentage * subMax;
+          } else {
+            achievedSync = (sub["SubAchieved"] ?? 0).toDouble();
+
+            if (achievedSync > (sub["SubMax"] ?? 0)) {
+              achievedSync = (sub["SubMax"] ?? 0).toDouble();
+            }
+          }
+
+          sub["AchievedSync"] = achievedSync;
+          kpiPoints += achievedSync;
+        }
+
+        kpi["KPIAchieved"] = kpiPoints > kpi["KPIWeight"]
+            ? kpi["KPIWeight"]
+            : kpiPoints;
+
+        totalEarned += kpi["KPIAchieved"];
+      }
+
+      data["OverallPercentage"] = totalMax > 0
+          ? ((totalEarned / totalMax) * 100).round()
+          : 0;
 
       setState(() {
         performanceData = data;
@@ -194,13 +256,22 @@ class _OverallperformanceState extends State<Overallperformance> {
           const SizedBox(height: 10),
 
           ...kpi['SubDetails'].map<Widget>((sub) {
+            bool isConfidential = (sub['SubName'] ?? "")
+                .toString()
+                .toLowerCase()
+                .contains("confidential");
+
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(sub['SubName']),
-                  Text("${sub['SubAchieved']} / ${sub['SubMax']}"),
+                  Text(
+                    isConfidential
+                        ? "${sub['AchievedSync']} / ${sub['SubMax']}"
+                        : "${sub['SubAchieved']} / ${sub['SubMax']}",
+                  ),
                 ],
               ),
             );
@@ -263,31 +334,12 @@ class _OverallperformanceState extends State<Overallperformance> {
             if (performanceData != null) ...[
               buildHeaderCard(),
               const SizedBox(height: 15),
-
-              Builder(
-                builder: (context) {
-                  final breakdown = performanceData?["Breakdown"];
-
-                  if (breakdown == null || breakdown.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "No KPI Data Available",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Expanded(
-                    child: ListView(
-                      children: breakdown
-                          .map<Widget>((kpi) => buildKpiCard(kpi))
-                          .toList(),
-                    ),
-                  );
-                },
+              Expanded(
+                child: ListView(
+                  children: performanceData!["Breakdown"]
+                      .map<Widget>((kpi) => buildKpiCard(kpi))
+                      .toList(),
+                ),
               ),
             ],
           ],

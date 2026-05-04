@@ -4,7 +4,7 @@ import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:epams/Teacher/QuestionnaireModel.dart';
-//import 'confidential_db.dart';
+import 'confidential_db.dart';
 
 class Confidentialevaluationform extends StatefulWidget {
   final String courseCode;
@@ -77,19 +77,19 @@ class _ConfidentialevaluationformState
 
     try {
 
-      /// 🔹 Save answers in SQLite
-      // for (var question in questions) {
+      // Save answers in SQLite
+      for (var question in questions) {
 
-      //   await ConfidentialDB.insertEvaluation(
-      //     session: DateTime.now().year.toString(),
-      //     courseCode: widget.courseCode,
-      //     courseName: widget.courseName,
-      //     teacherName: widget.teacherName,
-      //     question: question.questionText,
-      //     answer: selectedAnswers[question.questionID]!,
-      //   );
+        await ConfidentialDB.insertEvaluation(
+          session: DateTime.now().year.toString(),
+          courseCode: widget.courseCode,
+          courseName: widget.courseName,
+          teacherName: widget.teacherName,
+          question: question.questionText,
+          answer: selectedAnswers[question.questionID]!,
+        );
 
-      // }
+      }
 
       /// 🔹 Existing Backend API (Email)
       final response = await http.post(

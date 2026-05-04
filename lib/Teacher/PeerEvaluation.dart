@@ -108,7 +108,7 @@ class _PeerevaluationState extends State<Peerevaluation> {
                   itemBuilder: (context, index) {
                     final t = teachers[index];
 
-                    final courses = t.courses ?? [];
+                    final courses = t.courses;
 
                     if (courses.isEmpty) {
                       return const SizedBox(); // safe skip
