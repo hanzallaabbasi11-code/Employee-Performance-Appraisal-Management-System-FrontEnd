@@ -1,3 +1,4 @@
+import 'package:epams/DataCell/UploadCHR.dart';
 import 'package:epams/DataCell/UploadCoursesScreen.dart';
 import 'package:epams/DataCell/UploadStudentsScreen.dart';
 import 'package:epams/DataCell/UploadTeachersScreen.dart';
@@ -57,7 +58,9 @@ class DataCellDashboard extends StatelessWidget {
                 icon: Icons.description,
                 title: "Upload CHR Report",
                 subtitle: "Upload and manage daily Class Held Reports (CHR)",
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context)=> Uploadchr()));
+                },
               ),
 
               dashboardCard(

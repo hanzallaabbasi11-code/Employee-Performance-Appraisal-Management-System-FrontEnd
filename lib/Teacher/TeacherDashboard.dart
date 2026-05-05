@@ -236,7 +236,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => Classheldreport()),
+                    MaterialPageRoute(builder: (_) => Classheldreport(teacherId: widget.teacherID,)),
                   );
                 },
               ),
@@ -277,7 +277,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                 },
               ),
 
-              const SizedBox(height: 15),
+             const SizedBox(height: 15),
 
               buildManageButton(
                 icon: Icons.bar_chart,
@@ -296,6 +296,27 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   );
                 },
               ),
+
+              const SizedBox(height: 15),
+
+              buildManageButton(
+                icon: Icons.bar_chart,
+                label: 'See CHR Report ',
+                description: 'See Your CHR Report ',
+                backgroundColor: Colors.green,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Teacherseeperformance(
+                        teacherName: teacherName,
+                        userId: widget.teacherID,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
 
               const SizedBox(height: 15),
 
@@ -354,7 +375,7 @@ class TeacherdashboardState extends State<Teacherdashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                 Text(
                   label,
                   style: const TextStyle(
                     fontSize: 14,

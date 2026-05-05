@@ -1,5 +1,5 @@
 import 'package:epams/HOD/AddPeerEvaluatorScreen.dart';
-import 'package:epams/HOD/CHRPointsSettingScreen.dart';
+import 'package:epams/HOD/CHRReport.dart';
 import 'package:epams/HOD/CourseManagementScreen.dart';
 import 'package:epams/HOD/EvaluateSocietyChairpersons.dart';
 import 'package:epams/HOD/SeePerformanceScreen.dart';
@@ -132,14 +132,14 @@ class _HodState extends State<HodDashboard> {
 
               buildManageButton(
                 icon: Icons.settings,
-                label: 'CHR Points Settings',
-                description: 'Configure CHR scoring rules',
+                label: 'CHR Report',
+                description: 'Check the CHR Report',
                 backgroundColor: Colors.lightGreen,
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Chrpointssettingscreen(),
+                      builder: (context) => Chrreport(),
                     ),
                   );
                 },

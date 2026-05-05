@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:epams/Session.dart';
 import 'package:epams/Url.dart';
+import 'package:epams/Student/Confidential_db.dart';
 
 class Teacherseeperformance extends StatefulWidget {
   final String teacherName;
@@ -126,16 +127,13 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
             const SizedBox(height: 20),
 
-            // DROPDOWN
+            // DROPDOWN + FETCH + CONFIDENTIAL FIX
             FutureBuilder<List<Session>>(
               future: _sessionsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState ==
                     ConnectionState.waiting) {
                   return const CircularProgressIndicator();
-                }
-                if (snapshot.hasError) {
-                  return const Text('Failed to load sessions');
                 }
 
                 final sessions = snapshot.data!;
@@ -149,28 +147,82 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                       child: Text(s.name),
                     );
                   }).toList(),
+
                   onChanged: (val) async {
                     setState(() {
                       selectedSession = val;
                       _teacherPerformance = null;
                     });
 
-                    if (val != null) {
-                      try {
-                        final performance =
-                            await fetchPerformance(widget.userId, val.id);
+                    if (val == null) return;
 
-                        setState(() {
-                          _teacherPerformance = performance;
-                        });
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(e.toString())),
-                        );
+                    final data =
+                        await fetchPerformance(widget.userId, val.id);
+
+                    // ================= 🔥 CONFIDENTIAL FIX (DIRECTOR MATCH) =================
+
+                    final teacherName =
+                        (data["TeacherName"] ?? "").toString().trim();
+                    final sessionName =
+                        (data["SessionName"] ?? "").toString();
+
+                    double avgScore =
+                        await ConfidentialDB.getAverageScore(
+                      teacherName: teacherName,
+                      session: sessionName,
+                    );
+
+                    bool hasLocalData = avgScore > 0;
+
+                    List breakdown = data["Breakdown"];
+
+                    for (var kpi in breakdown) {
+                      double kpiPoints = 0;
+
+                      for (var sub in kpi["SubDetails"]) {
+                        String subName =
+                            (sub["SubName"] ?? "")
+                                .toString()
+                                .toLowerCase();
+
+                        double achievedSync;
+
+                        if (subName.contains("confidential") &&
+                            hasLocalData) {
+                          double maxScale =
+                              (sub["MaxScale"] ?? 4).toDouble();
+                          double subMax =
+                              (sub["SubMax"] ?? 0).toDouble();
+
+                          double percentage = avgScore / maxScale;
+
+                          if (percentage > 1) percentage = 1;
+                          if (percentage < 0) percentage = 0;
+
+                          achievedSync = percentage * subMax;
+                        } else {
+                          achievedSync =
+                              (sub["SubAchieved"] ?? 0).toDouble();
+
+                          if (achievedSync >
+                              (sub["SubMax"] ?? 0)) {
+                            achievedSync =
+                                (sub["SubMax"] ?? 0).toDouble();
+                          }
+                        }
+
+                        sub["AchievedSync"] = achievedSync;
+                        kpiPoints += achievedSync;
                       }
+
+                      kpi["KPIAchieved"] = kpiPoints;
                     }
+
+                    // ================= UPDATE UI =================
+                    setState(() {
+                      _teacherPerformance = data;
+                    });
                   },
-                  decoration: _inputDecoration(),
                 );
               },
             ),
@@ -178,74 +230,68 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
             const SizedBox(height: 20),
 
             // OVERALL CARD
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    height: 50,
-                    width: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(10),
+            if (_teacherPerformance != null)
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${_teacherPerformance?["OverallPercentage"] ?? 0}%',
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green),
                     ),
-                    child: const Icon(Icons.trending_up,
-                        color: Colors.white),
-                  ),
-                  const SizedBox(width: 15),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Overall Performance",
-                          style: TextStyle(color: Colors.grey)),
-                      const SizedBox(height: 5),
-                      Text(
-                        '${_teacherPerformance?["OverallPercentage"] ?? 0}%',
-                        style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green),
-                      ),
-                      Text(
-                        '(${_getTotalAchieved()} / ${_getTotalWeight()} points)',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ],
+                    Text(
+                      '(${_getTotalAchieved()} / ${_getTotalWeight()} points)',
+                    ),
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 20),
 
-            // KPI LIST
+            // KPI LIST (UNCHANGED UI)
             if (_teacherPerformance != null)
               Column(
                 children:
                     (_teacherPerformance!["Breakdown"] as List).map((kpi) {
                   return Column(
                     children: [
-                      performanceCard(
-                        title: kpi["KPIName"],
-                        score:
-                            '${kpi["KPIAchieved"]} / ${kpi["KPIWeight"]}',
-                        progress: kpi["KPIWeight"] == 0
+                      Text(kpi["KPIName"]),
+                      const SizedBox(height: 10),
+                      LinearProgressIndicator(
+                        value: kpi["KPIWeight"] == 0
                             ? 0
                             : (kpi["KPIAchieved"] /
                                 kpi["KPIWeight"]),
-                        items: (kpi["SubDetails"] as List)
-                            .map<List<String>>((sub) => [
-                                  sub["SubName"],
-                                  '${sub["SubAchieved"]} / ${sub["SubMax"]}'
-                                ])
-                            .toList(),
                       ),
                       const SizedBox(height: 20),
+
+                      Column(
+                        children: (kpi["SubDetails"] as List)
+                            .map<Widget>((sub) {
+                          return Padding(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 6),
+                            child: Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(sub["SubName"]),
+                                Text(
+                                  "${sub["AchievedSync"] ?? sub["SubAchieved"]} / ${sub["SubMax"]}",
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ],
                   );
                 }).toList(),
@@ -254,71 +300,6 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
               const Text('Select a session to view performance'),
           ],
         ),
-      ),
-    );
-  }
-
-  // ================= KPI CARD =================
-  Widget performanceCard({
-    required String title,
-    required String score,
-    required double progress,
-    required List<List<String>> items,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.green.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
-              Text(score,
-                  style: const TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey[300],
-            color: Colors.green,
-            minHeight: 8,
-          ),
-          const SizedBox(height: 15),
-          Column(
-            children: items.map((item) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-                  children: [Text(item[0]), Text(item[1])],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration() {
-    return InputDecoration(
-      filled: true,
-      fillColor: const Color(0xFFF3F8F5),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
       ),
     );
   }

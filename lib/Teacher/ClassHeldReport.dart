@@ -1,32 +1,92 @@
-import 'package:epams/Teacher/CHRDetails.dart';
+import 'dart:convert';
+import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class Classheldreport extends StatefulWidget {
-  const Classheldreport({super.key});
+  final String teacherId;
+
+  const Classheldreport({super.key, required this.teacherId});
 
   @override
   State<Classheldreport> createState() => _ClassheldreportState();
 }
 
 class _ClassheldreportState extends State<Classheldreport> {
-  final List<Map<String, String>> chrReports = [
-    {
-      "title": "CHR report of 25 Nov 2025",
-      "date": "25 Nov 2025",
-      "records": "2 records",
-    },
-    {
-      "title": "CHR report of 24 Nov 2025",
-      "date": "24 Nov 2025",
-      "records": "2 records",
-    },
-    {
-      "title": "CHR report of 23 Nov 2025",
-      "date": "23 Nov 2025",
-      "records": "1 record",
-    },
-  ];
+  List sessions = [];
+  List reports = [];
 
+  int? selectedSession;
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    initData();
+  }
+
+  // 🔥 FIX: proper sequential loading
+  Future<void> initData() async {
+    await loadSessions();
+    await loadReports();
+  }
+
+  // ================= SESSIONS =================
+  Future<void> loadSessions() async {
+    final res = await http.get(Uri.parse("$Url/CHR/GetSessions"));
+
+    if (res.statusCode == 200) {
+      setState(() {
+        sessions = json.decode(res.body);
+      });
+    }
+  }
+
+  // ================= REPORTS =================
+  Future<void> loadReports() async {
+    setState(() {
+      loading = true;
+      reports = []; // 🔥 IMPORTANT: clear old data
+    });
+
+    String url =
+        "$Url/CHR/GetTeacherReport?teacherId=${widget.teacherId}";
+
+    if (selectedSession != null) {
+      url += "&sessionID=$selectedSession";
+    }
+
+    print("REPORT API URL: $url");
+
+    final res = await http.get(Uri.parse(url));
+
+    if (res.statusCode == 200) {
+      setState(() {
+        reports = json.decode(res.body);
+        loading = false;
+      });
+    } else {
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  // ================= DATE FORMAT =================
+  String formatDate(String date) {
+    DateTime dt = DateTime.parse(date);
+    return "${dt.day.toString().padLeft(2, '0')} ${_monthName(dt.month)} ${dt.year}";
+  }
+
+  String _monthName(int m) {
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    return months[m - 1];
+  }
+
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,150 +94,141 @@ class _ClassheldreportState extends State<Classheldreport> {
       body: SafeArea(
         child: Column(
           children: [
-
-            // ================= HEADER (UPDATED) =================
+            // ================= HEADER =================
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                
                 children: [
-                   IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.arrow_back)),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children:[
-                      Text(
-                        'Class Held Report (CHR)',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'View your daily performance record.',
-                        style: TextStyle(
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  Image.asset(
-                    'assets/images/logo.jpeg',
-                    height: 40,
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Class Held Report (CHR)",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "View your daily performance record",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   ),
+                  Image.asset('assets/images/logo.jpeg', height: 40),
                 ],
               ),
             ),
 
-            const SizedBox(height: 12,),
-            Container(
-              height: 40,
-              decoration: BoxDecoration(
-                border: Border.all(),
-                color: Colors.purple,
-              ),
-              child: Center(child: Text('Your Class Attendence and schedule report.',style: 
-              TextStyle(color: Colors.white),)),
-            ),
-                    const SizedBox(height: 12,),
-            // ================= LIST =================
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: chrReports.length,
-                itemBuilder: (context, index) {
-                  final report = chrReports[index];
+            // ================= SESSION FILTER =================
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DropdownButtonFormField<int>(
+                value: selectedSession,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  labelText: "Select Session",
+                ),
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 3,
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Calendar Icon
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.purple.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.calendar_today,
-                              size: 20,
-                              color: Colors.purple,
-                            ),
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          // Text Section
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  report["title"]!,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  report["date"]!,
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  report["records"]!,
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          // View Details Button
-                          SizedBox(
-                            height: 36,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context)=> Chrdetails()),);
-                              },
-                              child: const Text(
-                                "View Details",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                items: sessions.map<DropdownMenuItem<int>>((s) {
+                  return DropdownMenuItem<int>(
+                    value: int.parse(s["id"].toString()),
+                    child: Text(s["name"].toString()),
                   );
+                }).toList(),
+
+                onChanged: (val) async {
+                  setState(() {
+                    selectedSession = val;
+                  });
+
+                  // 🔥 FORCE reload AFTER state update
+                  await loadReports();
                 },
               ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // ================= LIST =================
+            Expanded(
+              child: loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : reports.isEmpty
+                      ? const Center(child: Text("No Reports Found"))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: reports.length,
+                          itemBuilder: (context, index) {
+                            final item = reports[index];
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 3,
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.shade50,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.assignment,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item["CourseCode"] ?? "No Course",
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(item["TeacherName"] ?? ""),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            formatDate(item["ClassDate"]),
+                                            style:
+                                                const TextStyle(fontSize: 12),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            "Score: ${item["Score"]} | Status: ${item["Status"]}",
+                                            style: const TextStyle(
+                                                color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),
