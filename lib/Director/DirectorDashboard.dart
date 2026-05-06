@@ -273,7 +273,24 @@ class _DirectordashboardState extends State<Directordashboard> {
                     child: dashboardCard(
                       icon: Icons.lock_outline,
                       title: 'Email Setting',
-                      subtitle: 'Confidential Evaluations',
+                      subtitle: 'Set email for Confidential Evaluation',
+                      onTap: () {
+                         Navigator.push(
+                            context,
+                          MaterialPageRoute(
+                     builder: (context) => const Emailsetting(), // your target screen
+                         ),
+                      );
+                      },
+                    ),
+                  ),
+
+                   SizedBox(
+                    width: double.infinity,
+                    child: dashboardCard(
+                      icon: Icons.lock_outline,
+                      title: 'Course Evaluations',
+                      subtitle: 'See detailed courses evaluations',
                       onTap: () {
                          Navigator.push(
                             context,

@@ -16,6 +16,9 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
   List evaluations = [];
   bool loading = false;
 
+  // ✅ NEW FILTER VARIABLE
+  String selectedFilter = "all";
+
   @override
   void initState() {
     super.initState();
@@ -42,7 +45,10 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
     final res = await http.post(
       Uri.parse("$Url/Confidential/get-evaluations"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"mail": selectedEmail}),
+      body: jsonEncode({
+        "mail": selectedEmail,
+        "filter": selectedFilter, // ✅ ADDED
+      }),
     );
 
     final data = jsonDecode(res.body);
@@ -70,12 +76,10 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
     return grouped;
   }
 
-  // UPDATED: Corrected to look for "score" key instead of "answer"
   int getScore(dynamic evaluationList) {
     int total = 0;
     if (evaluationList == null) return 0;
     for (var q in evaluationList) {
-      // Changed q["answer"] to q["score"] to match your API
       total += int.tryParse(q["score"].toString()) ?? 0;
     }
     return total;
@@ -109,7 +113,30 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                 });
               },
             ),
+
             const SizedBox(height: 10),
+
+            // ✅ NEW FILTER DROPDOWN (NO DESIGN CHANGE)
+            DropdownButtonFormField<String>(
+              value: selectedFilter,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12),
+              ),
+              items: const [
+                DropdownMenuItem(value: "all", child: Text("All")),
+                DropdownMenuItem(value: "unread", child: Text("Unread")),
+                DropdownMenuItem(value: "read", child: Text("Read")),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  selectedFilter = val!;
+                });
+              },
+            ),
+
+            const SizedBox(height: 10),
+
             ElevatedButton(
               onPressed: loadEvaluations,
               style: ElevatedButton.styleFrom(
@@ -118,9 +145,13 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
               ),
               child: const Text("Load Evaluations"),
             ),
+
             const SizedBox(height: 10),
+
             if (loading) const CircularProgressIndicator(),
+
             const SizedBox(height: 10),
+
             Expanded(
               child: ListView(
                 children: grouped.entries.map((entry) {
@@ -144,8 +175,12 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 16),
                               ),
-                              Text("Total: $totalScore ⭐", 
-                                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                              Text(
+                                "Total: $totalScore ⭐",
+                                style: const TextStyle(
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold),
+                              ),
                             ],
                           ),
                           const Divider(),
@@ -153,12 +188,14 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                           Text("Teacher: ${first["teacherName"] ?? "-"}"),
                           Text("Session: ${first["session"] ?? "-"}"),
                           const SizedBox(height: 10),
-                          
-                          const Text("Detailed Feedback:", 
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+
+                          const Text(
+                            "Detailed Feedback:",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
                           const SizedBox(height: 5),
 
-                          // NEW: This part displays each question and its score
                           ...questList.map((q) {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 4.0),
@@ -175,9 +212,10 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                                   Text(
                                     "${q['score']} ⭐",
                                     style: const TextStyle(
-                                        color: Colors.orange,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12),
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                               ),

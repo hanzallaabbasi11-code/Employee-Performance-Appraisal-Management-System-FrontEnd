@@ -25,7 +25,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
   Session? selectedSession;
 
-  String? selectedKpiId; // 🔥 REAL KPI ID
+  String? selectedKpiId;
 
   List kpiTypes = [];
 
@@ -74,16 +74,16 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
     return json.decode(response.body);
   }
 
-  // ================= GRAPH COLOR =================
- Color getDynamicColor(String text) {
-  final hash = text.hashCode;
+  // ================= COLOR =================
+  Color getDynamicColor(String text) {
+    final hash = text.hashCode;
 
-  final r = (hash & 0xFF0000) >> 16;
-  final g = (hash & 0x00FF00) >> 8;
-  final b = (hash & 0x0000FF);
+    final r = (hash & 0xFF0000) >> 16;
+    final g = (hash & 0x00FF00) >> 8;
+    final b = (hash & 0x0000FF);
 
-  return Color.fromARGB(255, r, g, b).withOpacity(0.8);
-}
+    return Color.fromARGB(255, r, g, b).withOpacity(0.8);
+  }
 
   // ================= BUILD =================
   @override
@@ -132,7 +132,6 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
                     const SizedBox(height: 10),
 
-                    // ================= KPI CATEGORY (REAL IDs) =================
                     DropdownButtonFormField<String>(
                       value: selectedKpiId,
                       hint: const Text("All Categories"),
@@ -167,6 +166,73 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                           selectedKpiId,
                         );
 
+                        // ================= 🔥 CONFIDENTIAL FIX ADDED =================
+                        final teacherName =
+                            (data["TeacherName"] ?? "").toString().trim();
+                        final sessionName =
+                            (data["SessionName"] ?? "").toString();
+
+                        double avgScore =
+                            await ConfidentialDB.getAverageScore(
+                          teacherName: teacherName,
+                          session: sessionName,
+                        );
+
+                        bool hasLocalData = avgScore > 0;
+
+                        double totalEarned = 0;
+                        double totalMax = 0;
+
+                        List breakdown = data["Breakdown"];
+
+                        for (var kpi in breakdown) {
+                          totalMax += (kpi["KPIWeight"] ?? 0);
+
+                          double kpiPoints = 0;
+
+                          for (var sub in kpi["SubDetails"]) {
+                            String subName =
+                                (sub["SubName"] ?? "").toString().toLowerCase();
+
+                            double achievedSync;
+
+                            if (subName.contains("confidential") &&
+                                hasLocalData) {
+                              double maxScale =
+                                  (sub["MaxScale"] ?? 4).toDouble();
+                              double subMax =
+                                  (sub["SubMax"] ?? 0).toDouble();
+
+                              double percentage = avgScore / maxScale;
+                              if (percentage > 1) percentage = 1;
+                              if (percentage < 0) percentage = 0;
+
+                              achievedSync = percentage * subMax;
+                            } else {
+                              achievedSync =
+                                  (sub["SubAchieved"] ?? 0).toDouble();
+
+                              if (achievedSync > (sub["SubMax"] ?? 0)) {
+                                achievedSync =
+                                    (sub["SubMax"] ?? 0).toDouble();
+                              }
+                            }
+
+                            sub["AchievedSync"] = achievedSync;
+                            kpiPoints += achievedSync;
+                          }
+
+                          kpi["KPIAchieved"] = kpiPoints > kpi["KPIWeight"]
+                              ? kpi["KPIWeight"]
+                              : kpiPoints;
+
+                          totalEarned += kpi["KPIAchieved"];
+                        }
+
+                        data["OverallPercentage"] = totalMax > 0
+                            ? ((totalEarned / totalMax) * 100).round()
+                            : 0;
+
                         setState(() {
                           _teacherPerformance = data;
                         });
@@ -198,7 +264,6 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
               const SizedBox(height: 15),
 
-              // ================= GRAPH =================
               SizedBox(
                 height: 200,
                 child: Row(
@@ -208,9 +273,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                       .map<Widget>((kpi) {
                     double percent = kpi['KPIWeight'] == 0
                         ? 0
-                        : (kpi['KPIAchieved'] /
-                            kpi['KPIWeight']) *
-                            100;
+                        : (kpi['KPIAchieved'] / kpi['KPIWeight']) * 100;
 
                     return Column(
                       children: [
@@ -241,7 +304,6 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
               const SizedBox(height: 20),
 
-              // ================= KPI DETAILS (UNCHANGED) =================
               Expanded(
                 child: ListView(
                   children: (_teacherPerformance!["Breakdown"] as List)

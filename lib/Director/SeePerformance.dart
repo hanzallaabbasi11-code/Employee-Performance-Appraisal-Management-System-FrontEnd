@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:epams/Director/DetailComparison.dart';
-import 'package:epams/Director/ViewPerformance.dart';
-//import 'package:epams/Director/Viewperformance.dart';
+//import 'package:epams/Director/DetailComparison.dart';
+import 'package:epams/Director/DetailedPerformance.dart';
+//import 'package:epams/Director/ViewPerformance.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -16,13 +16,15 @@ class Seeperformance extends StatefulWidget {
 
 class _SeeperformanceState extends State<Seeperformance> {
   List sessions = [];
-  List employeeTypes = [];
-  List courses = [];
+  List<String> employeeTypes = [];
+  List<String> courses = [];
   List teachers = [];
 
   int? selectedSession;
   int selectedTab = 0;
+
   String selectedCourse = "All";
+  String selectedDepartment = "All";
 
   @override
   void initState() {
@@ -41,20 +43,27 @@ class _SeeperformanceState extends State<Seeperformance> {
 
       if (sessions.isNotEmpty) {
         selectedSession = sessions.first['id'];
-
         getCourses(selectedSession!);
         getPerformance();
       }
     });
   }
 
-  // ================= EMPLOYEE TYPES =================
+  // ================= DEPARTMENTS =================
   Future getEmployeeTypes() async {
     var res = await http.get(Uri.parse("$Url/Performance/GetEmployeeTypes"));
     var data = jsonDecode(res.body);
 
     setState(() {
-      employeeTypes = data;
+      employeeTypes = ["All"];
+
+      for (var d in data) {
+        if (d is String) {
+          employeeTypes.add(d);
+        } else {
+          employeeTypes.add(d['type']?.toString() ?? '');
+        }
+      }
     });
   }
 
@@ -67,7 +76,16 @@ class _SeeperformanceState extends State<Seeperformance> {
     var data = jsonDecode(res.body);
 
     setState(() {
-      courses = ["All", ...data];
+      courses = ["All"];
+
+      for (var c in data) {
+        if (c is String) {
+          courses.add(c);
+        } else {
+          courses.add(c['courseCode']?.toString() ?? '');
+        }
+      }
+
       selectedCourse = "All";
     });
   }
@@ -78,69 +96,96 @@ class _SeeperformanceState extends State<Seeperformance> {
 
     var res = await http.get(
       Uri.parse(
-        "$Url/Performance/GetTeacherPerformance?sessionId=$selectedSession&courseCode=$selectedCourse",
+        "$Url/performance/GetTeachersPerformanceList"
+        "?sessionId=$selectedSession"
+        "&department=$selectedDepartment"
+        "&courseCode=$selectedCourse",
       ),
     );
 
     var data = jsonDecode(res.body);
+
+    for (var t in data) {
+      double student = (t['StudentAverage'] ?? 0).toDouble();
+      double peer = (t['PeerAverage'] ?? 0).toDouble();
+      double chr = (t['ChrAverage'] ?? 0).toDouble();
+
+      double percent = ((student + peer + chr) / 30) * 100;
+      t['Percentage'] = percent.clamp(0, 100);
+    }
 
     setState(() {
       teachers = data;
     });
   }
 
-  // ================= SESSION DROPDOWN =================
+  Widget _buildMiniBar(String label, double value, Color color) {
+    double normalized = (value / 10);
+    normalized = normalized.clamp(0.0, 1.0);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        SizedBox(width: 90, child: Text(label, style: TextStyle(fontSize: 12))),
+        Expanded(
+          child: Container(
+            height: 6,
+            margin: EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: normalized,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Text(value.toStringAsFixed(1), style: TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  // ================= DROPDOWNS =================
   Widget sessionDropdown() {
     return DropdownButtonFormField(
       value: selectedSession,
-      decoration: InputDecoration(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12),
-      ),
       items: sessions.map<DropdownMenuItem>((s) {
         return DropdownMenuItem(
           value: s['id'],
-          child: Text(s['name']),
+          child: Text(s['name']?.toString() ?? ''),
         );
       }).toList(),
       onChanged: (value) {
-        setState(() {
-          selectedSession = value;
-        });
-
+        setState(() => selectedSession = value);
         getCourses(selectedSession!);
         getPerformance();
       },
     );
   }
 
-  // ================= EMPLOYEE TYPE TABS =================
-  Widget employeeTabs() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(employeeTypes.length, (index) {
-          bool active = selectedTab == index;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(employeeTypes[index]['type']),
-              selected: active,
-              selectedColor: Colors.green,
-              onSelected: (v) {
-                setState(() {
-                  selectedTab = index;
-                });
-              },
-            ),
-          );
-        }),
-      ),
+  Widget departmentDropdown() {
+    return DropdownButtonFormField(
+      value: selectedDepartment,
+      items: employeeTypes.map((d) {
+        return DropdownMenuItem(
+          value: d,
+          child: Text(d),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() => selectedDepartment = value.toString());
+        getPerformance();
+      },
     );
   }
 
-  // ================= COURSE FILTER =================
   Widget courseFilter() {
     return Wrap(
       spacing: 8,
@@ -150,12 +195,8 @@ class _SeeperformanceState extends State<Seeperformance> {
         return ChoiceChip(
           label: Text(c),
           selected: active,
-          selectedColor: Colors.green,
-          onSelected: (v) {
-            setState(() {
-              selectedCourse = c;
-            });
-
+          onSelected: (_) {
+            setState(() => selectedCourse = c);
             getPerformance();
           },
         );
@@ -174,51 +215,18 @@ class _SeeperformanceState extends State<Seeperformance> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-
-              Expanded(
-                child: Text(
-                  "Teacher Performance Comparison",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const Detailcomparison(),
-                    ),
-                  );
-                },
-                child: Text("Detail Comparison"),
-              ),
-            ],
-          ),
-
-          SizedBox(height: 10),
-
           SizedBox(
             height: 220,
             child: SfCartesianChart(
               primaryXAxis: CategoryAxis(),
-              series: <CartesianSeries>[
-                ColumnSeries<dynamic, String>(
+              series: [
+                ColumnSeries(
                   dataSource: topTeachers,
-                  xValueMapper: (data, _) => data['TeacherName'],
-                  yValueMapper: (data, _) => data['Percentage'],
+                  xValueMapper: (d, _) => d['Name'] ?? '',
+                  yValueMapper: (d, _) => d['Percentage'] ?? 0,
                 ),
               ],
             ),
@@ -228,7 +236,7 @@ class _SeeperformanceState extends State<Seeperformance> {
     );
   }
 
-  // ================= TEACHER CARD =================
+  // ================= CARD =================
   Widget teacherCard(t) {
     double percent = (t['Percentage'] ?? 0).toDouble();
 
@@ -238,68 +246,46 @@ class _SeeperformanceState extends State<Seeperformance> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                t['TeacherName'],
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              Text(
-                "${percent.toStringAsFixed(0)}%",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              Text(t['TeacherName']?.toString() ?? '',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text("${percent.toStringAsFixed(0)}%"),
             ],
           ),
 
-          SizedBox(height: 4),
-
-          Text(
-            t['CourseCode'],
-            style: TextStyle(color: Colors.grey),
-          ),
+          Text(t['CourseCode']?.toString() ?? ''),
 
           SizedBox(height: 8),
 
-          LinearProgressIndicator(
-            value: percent / 100,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(10),
-          ),
+          LinearProgressIndicator(value: percent / 100),
 
-          SizedBox(height: 12),
+          SizedBox(height: 10),
 
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () {
+          _buildMiniBar("Student", (t['StudentAverage'] ?? 0).toDouble(), Colors.green),
+          _buildMiniBar("Peer", (t['PeerAverage'] ?? 0).toDouble(), Colors.orange),
+          _buildMiniBar("CHR", (t['ChrAverage'] ?? 0).toDouble(), Colors.purple),
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Viewperformance(
-                      teacherId: t['TeacherID'],
-                      courseCode: t['CourseCode'],
-                      sessionId: selectedSession!,
-                    ),
+          SizedBox(height: 10),
+
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => Detailedperformance(
+                    teacherId: t['TeacherID'],
+                    courseCode: t['CourseCode'],
+                    sessionId: selectedSession!,
                   ),
-                );
-
-              },
-              child: Text("View Performance"),
-            ),
+                ),
+              );
+            },
+            child: Text("View Performance"),
           ),
         ],
       ),
@@ -310,42 +296,24 @@ class _SeeperformanceState extends State<Seeperformance> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF4F6FA),
-
-      appBar: AppBar(
-        title: Text("Employee Performance"),
-        backgroundColor: Colors.green,
-      ),
-
-      body: Padding(
+      appBar: AppBar(title: Text("Employee Performance")),
+      body: ListView(
         padding: EdgeInsets.all(12),
-        child: ListView(
-          children: [
+        children: [
+          sessionDropdown(),
+          SizedBox(height: 10),
 
-            sessionDropdown(),
+          departmentDropdown(),
+          SizedBox(height: 10),
 
-            SizedBox(height: 12),
+          courseFilter(),
+          SizedBox(height: 10),
 
-            employeeTabs(),
+          performanceChart(),
+          SizedBox(height: 10),
 
-            SizedBox(height: 12),
-
-            Text("Filter by Course:"),
-
-            SizedBox(height: 8),
-
-            courseFilter(),
-
-            SizedBox(height: 16),
-
-            performanceChart(),
-
-            SizedBox(height: 16),
-
-            ...teachers.map((t) => teacherCard(t)).toList(),
-
-          ],
-        ),
+          ...teachers.map((t) => teacherCard(t)).toList(),
+        ],
       ),
     );
   }
