@@ -16,9 +16,11 @@ class _OverallperformanceState extends State<Overallperformance> {
 
   List sessions = [];
   List teachers = [];
+  List kpiTypes = [];
 
   String? selectedSessionId;
   String? selectedTeacherId;
+  String? selectedKpiId; // null = ALL
 
   Map<String, dynamic>? performanceData;
   bool isLoading = false;
@@ -29,12 +31,12 @@ class _OverallperformanceState extends State<Overallperformance> {
     fetchSessions();
   }
 
+  // ================= FETCH =================
+
   Future<void> fetchSessions() async {
     final res = await http.get(Uri.parse("$baseUrl/list"));
     if (res.statusCode == 200) {
-      setState(() {
-        sessions = jsonDecode(res.body);
-      });
+      setState(() => sessions = jsonDecode(res.body));
     }
   }
 
@@ -42,23 +44,43 @@ class _OverallperformanceState extends State<Overallperformance> {
     final res = await http.get(
       Uri.parse("$baseUrl/GetTeachersBySession/$sessionId"),
     );
+
     if (res.statusCode == 200) {
-      setState(() {
-        teachers = jsonDecode(res.body);
-      });
+      setState(() => teachers = jsonDecode(res.body));
     }
   }
+
+  Future<void> fetchKpiTypes(String sessionId) async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/GetKpiTypesBySession/$sessionId"),
+    );
+
+    if (res.statusCode == 200) {
+      List data = jsonDecode(res.body);
+
+      // ✅ ADD ALL OPTION
+      data.insert(0, {"id": "all", "name": "All Categories"});
+
+      setState(() => kpiTypes = data);
+    }
+  }
+
+  // ================= ANALYTICS =================
 
   Future<void> fetchAnalytics() async {
     if (selectedSessionId == null || selectedTeacherId == null) return;
 
     setState(() => isLoading = true);
 
-    final res = await http.get(
-      Uri.parse(
-        "$baseUrl/GetTeacherPerformanceAnalytics/$selectedTeacherId/$selectedSessionId",
-      ),
-    );
+    String url =
+        "$baseUrl/GetTeacherPerformanceAnalytics/$selectedTeacherId/$selectedSessionId";
+
+    // ✅ APPLY FILTER ONLY IF NOT ALL
+    if (selectedKpiId != null && selectedKpiId != "all") {
+      url += "?kpiId=$selectedKpiId";
+    }
+
+    final res = await http.get(Uri.parse(url));
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
@@ -75,7 +97,7 @@ class _OverallperformanceState extends State<Overallperformance> {
         return;
       }
 
-      /// 🔥 LOCAL AVG
+      /// LOCAL CONFIDENTIAL AVG
       final teacherName = (data["TeacherName"] ?? "").toString().trim();
       final sessionName = (data["SessionName"] ?? "").toString();
 
@@ -105,10 +127,7 @@ class _OverallperformanceState extends State<Overallperformance> {
             double maxScale = (sub["MaxScale"] ?? 4).toDouble();
             double subMax = (sub["SubMax"] ?? 0).toDouble();
 
-            /// 🔥 FIX: convert avg into percentage first
             double percentage = avgScore / maxScale;
-
-            /// clamp between 0 and 1
             if (percentage > 1) percentage = 1;
             if (percentage < 0) percentage = 0;
 
@@ -143,6 +162,18 @@ class _OverallperformanceState extends State<Overallperformance> {
     }
   }
 
+  Color getDynamicColor(String text) {
+  final hash = text.hashCode;
+
+  final r = (hash & 0xFF0000) >> 16;
+  final g = (hash & 0x00FF00) >> 8;
+  final b = (hash & 0x0000FF);
+
+  return Color.fromARGB(255, r, g, b).withOpacity(0.8);
+}
+
+  // ================= DROPDOWN =================
+
   Widget buildDropdown({
     required String hint,
     required List items,
@@ -153,7 +184,7 @@ class _OverallperformanceState extends State<Overallperformance> {
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
@@ -176,6 +207,8 @@ class _OverallperformanceState extends State<Overallperformance> {
     );
   }
 
+  // ================= HEADER =================
+
   Widget buildHeaderCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -192,12 +225,10 @@ class _OverallperformanceState extends State<Overallperformance> {
               Text(
                 performanceData?["TeacherName"] ?? "",
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 5),
               Text(
                 performanceData?["SessionName"] ?? "",
                 style: const TextStyle(color: Colors.white70),
@@ -209,13 +240,68 @@ class _OverallperformanceState extends State<Overallperformance> {
             backgroundColor: Colors.white,
             child: Text(
               "${performanceData?["OverallPercentage"] ?? 0}%",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
       ),
     );
   }
+
+  // ================= GRAPH =================
+
+  Widget buildGraph() {
+    List breakdown = performanceData?["Breakdown"] ?? [];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Metric Analytics",
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: breakdown.map<Widget>((kpi) {
+              double percent = kpi['KPIWeight'] == 0
+                  ? 0
+                  : (kpi['KPIAchieved'] / kpi['KPIWeight']) * 100;
+
+              return Column(
+                children: [
+                  Text("${percent.toStringAsFixed(0)}%"),
+                  const SizedBox(height: 5),
+                  Container(
+                    width: 20,
+                    height: percent,
+                    color:getDynamicColor(kpi['KPIName']),
+                  ),
+                  const SizedBox(height: 5),
+                  SizedBox(
+                    width: 60,
+                    child: Text(
+                      kpi['KPIName'],
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  )
+                ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= KPI CARD =================
 
   Widget buildKpiCard(Map kpi) {
     double percent = kpi['KPIWeight'] == 0
@@ -237,7 +323,10 @@ class _OverallperformanceState extends State<Overallperformance> {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
-          LinearProgressIndicator(value: percent / 100, minHeight: 8),
+          LinearProgressIndicator(
+            value: percent / 100,
+            minHeight: 8,
+          ),
           const SizedBox(height: 5),
           Align(
             alignment: Alignment.centerRight,
@@ -252,7 +341,6 @@ class _OverallperformanceState extends State<Overallperformance> {
               ],
             ),
           ),
-
           const SizedBox(height: 10),
 
           ...kpi['SubDetails'].map<Widget>((sub) {
@@ -266,7 +354,7 @@ class _OverallperformanceState extends State<Overallperformance> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(sub['SubName']),
+                  Expanded(child: Text(sub['SubName'])),
                   Text(
                     isConfidential
                         ? "${sub['AchievedSync']} / ${sub['SubMax']}"
@@ -281,6 +369,8 @@ class _OverallperformanceState extends State<Overallperformance> {
     );
   }
 
+  // ================= BUILD =================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -290,24 +380,30 @@ class _OverallperformanceState extends State<Overallperformance> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
+
+            /// 🔥 DROPDOWNS
             Row(
               children: [
                 buildDropdown(
-                  hint: "Select Session",
+                  hint: "Session",
                   items: sessions,
                   value: selectedSessionId,
                   onChanged: (val) {
                     setState(() {
                       selectedSessionId = val;
                       selectedTeacherId = null;
+                      selectedKpiId = null;
                       teachers = [];
+                      kpiTypes = [];
                     });
+
                     fetchTeachers(val!);
+                    fetchKpiTypes(val);
                   },
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 buildDropdown(
-                  hint: "Select Teacher",
+                  hint: "Teacher",
                   items: teachers,
                   value: selectedTeacherId,
                   keyId: 'UserID',
@@ -316,32 +412,55 @@ class _OverallperformanceState extends State<Overallperformance> {
                     setState(() => selectedTeacherId = val);
                   },
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: fetchAnalytics,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
-                  child: const Text("Generate"),
+                const SizedBox(width: 8),
+                buildDropdown(
+                  hint: "Category",
+                  items: kpiTypes,
+                  value: selectedKpiId ?? "all",
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == "all") {
+                        selectedKpiId = null;
+                      } else {
+                        selectedKpiId = val;
+                      }
+                    });
+                  },
                 ),
               ],
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
+
+            /// 🔥 BUTTON
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: fetchAnalytics,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text("Generate Analysis"),
+              ),
+            ),
+
+            const SizedBox(height: 10),
 
             if (isLoading) const CircularProgressIndicator(),
 
             if (performanceData != null) ...[
               buildHeaderCard(),
-              const SizedBox(height: 15),
+              buildGraph(),
+
               Expanded(
                 child: ListView(
                   children: performanceData!["Breakdown"]
                       .map<Widget>((kpi) => buildKpiCard(kpi))
                       .toList(),
                 ),
-              ),
-            ],
+              )
+            ]
           ],
         ),
       ),
