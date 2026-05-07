@@ -1,6 +1,7 @@
 import 'package:epams/Director/AddKPI.dart';
 import 'package:epams/Director/AddPeerEvaluators.dart';
 import 'package:epams/Director/ConfidentialEvaluation.dart';
+import 'package:epams/Director/CourseEvaluation.dart';
 import 'package:epams/Director/EmailSetting.dart';
 import 'package:epams/Director/MakeQuestioner.dart';
 import 'package:epams/Director/OverallPerformance.dart';
@@ -284,7 +285,9 @@ class _DirectordashboardState extends State<Directordashboard> {
                       },
                     ),
                   ),
-
+                   
+                   const SizedBox(height: 20),
+                   
                    SizedBox(
                     width: double.infinity,
                     child: dashboardCard(
@@ -295,7 +298,7 @@ class _DirectordashboardState extends State<Directordashboard> {
                          Navigator.push(
                             context,
                           MaterialPageRoute(
-                     builder: (context) => const Emailsetting(), // your target screen
+                     builder: (context) => const Courseevaluation(), // your target screen
                          ),
                       );
                       },
