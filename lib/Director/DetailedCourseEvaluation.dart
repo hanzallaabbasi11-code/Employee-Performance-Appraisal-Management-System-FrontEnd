@@ -24,12 +24,14 @@ class Detailedcourseevaluation extends StatefulWidget {
       _DetailedcourseevaluationState();
 }
 
-class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
+class _DetailedcourseevaluationState
+    extends State<Detailedcourseevaluation> {
   List questions = [];
   List courses = [];
 
   String selectedCourse = "";
   String selectedEvalType = "both";
+  String selectedQuestionStatus = "all";
 
   bool loading = true;
 
@@ -51,6 +53,10 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
     if (response.statusCode == 200) {
       setState(() {
         courses = jsonDecode(response.body);
+
+        if (!courses.contains("ALL")) {
+          courses.insert(0, "ALL");
+        }
       });
     }
   }
@@ -62,7 +68,10 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
 
     final response = await http.get(
       Uri.parse(
-        "$Url/ExtraFeatures/GetCourseQuestionDetail/${widget.teacherId}/${widget.sessionId}/$selectedCourse?evaluationType=$selectedEvalType",
+        "$Url/ExtraFeatures/GetCourseQuestionDetail/"
+        "${widget.teacherId}/${widget.sessionId}/$selectedCourse"
+        "?evaluationType=$selectedEvalType"
+        "&questionStatus=$selectedQuestionStatus",
       ),
     );
 
@@ -75,19 +84,6 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
     setState(() {
       loading = false;
     });
-  }
-
-  Color getBarColor(String key) {
-    switch (key) {
-      case "Score4":
-        return Colors.green;
-      case "Score3":
-        return Colors.lightGreen;
-      case "Score2":
-        return Colors.orange;
-      default:
-        return Colors.red;
-    }
   }
 
   Widget scoreBar(String title, int value, int total, Color color) {
@@ -160,7 +156,7 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
               ),
               const SizedBox(height: 10),
               Text(
-                item["QuestionText"],
+                item["QuestionText"] ?? "",
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -258,7 +254,7 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                     radius: 22,
                     backgroundColor: Colors.green.shade100,
                     child: Text(
-                      item["AverageScore"].toStringAsFixed(2),
+                      (item["AverageScore"] ?? 0).toStringAsFixed(2),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.green,
@@ -275,7 +271,7 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
   }
 
   Widget buildQuestionCard(Map item, int index) {
-    int total = item["TotalResponses"];
+    int total = item["TotalResponses"] ?? 0;
 
     return GestureDetector(
       onTap: () => showEvaluatorModal(item),
@@ -286,12 +282,16 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
-            BoxShadow(color: Colors.grey.withOpacity(.08), blurRadius: 10),
+            BoxShadow(
+              color: Colors.grey.withOpacity(.08),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   height: 48,
@@ -309,22 +309,26 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                     ),
                   ),
                 ),
+
                 const SizedBox(width: 16),
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item["QuestionText"],
+                        item["QuestionText"] ?? "",
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 20,
                         ),
                       ),
+
                       const SizedBox(height: 8),
-                      Row(
+
+                      Wrap(
                         children: List.generate(
-                          item["AverageScore"].round(),
+                          (item["AverageScore"] ?? 0).round(),
                           (index) => const Icon(
                             Icons.star,
                             color: Colors.amber,
@@ -335,14 +339,18 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                     ],
                   ),
                 ),
+
+                const SizedBox(width: 10),
+
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      item["AverageScore"].toStringAsFixed(2),
+                      (item["AverageScore"] ?? 0).toStringAsFixed(2),
                       style: const TextStyle(
                         color: Color(0xff0b7a34),
                         fontWeight: FontWeight.bold,
-                        fontSize: 34,
+                        fontSize: 30,
                       ),
                     ),
                     const Text(
@@ -357,7 +365,9 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                 ),
               ],
             ),
+
             const SizedBox(height: 26),
+
             Row(
               children: const [
                 Text(
@@ -370,16 +380,34 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                 ),
               ],
             ),
+
             const SizedBox(height: 18),
-            scoreBar("S4", item["Score4"], total, Colors.green),
+
+            scoreBar("S4", item["Score4"] ?? 0, total, Colors.green),
+
             const SizedBox(height: 12),
-            scoreBar("S3", item["Score3"], total, Colors.lightGreen),
+
+            scoreBar(
+              "S3",
+              item["Score3"] ?? 0,
+              total,
+              Colors.lightGreen,
+            ),
+
             const SizedBox(height: 12),
-            scoreBar("S2", item["Score2"], total, Colors.orange),
+
+            scoreBar("S2", item["Score2"] ?? 0, total, Colors.orange),
+
             const SizedBox(height: 12),
-            scoreBar("S1", item["Score1"], total, Colors.red),
+
+            scoreBar("S1", item["Score1"] ?? 0, total, Colors.red),
+
             const SizedBox(height: 18),
-            Row(
+
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -402,7 +430,26 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                     ),
                   ),
                 ),
-                const Spacer(),
+
+                if (selectedQuestionStatus == "critical")
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: const Text(
+                      "Critical",
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
                 const Text(
                   "Click to see who rated →",
                   style: TextStyle(
@@ -415,6 +462,194 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget buildFilters() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isSmallScreen = constraints.maxWidth < 700;
+
+        return Column(
+          children: [
+            if (isSmallScreen) ...[
+              DropdownButtonFormField<String>(
+                value: courses.contains(selectedCourse)
+                    ? selectedCourse
+                    : null,
+                decoration: InputDecoration(
+                  labelText: "SELECT COURSE",
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                items: courses.map<DropdownMenuItem<String>>((e) {
+                  return DropdownMenuItem(
+                    value: e.toString(),
+                    child: Text(
+                      e.toString(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (v) {
+                  setState(() {
+                    selectedCourse = v!;
+                  });
+
+                  getQuestions();
+                },
+              ),
+
+              const SizedBox(height: 14),
+
+              DropdownButtonFormField<String>(
+                value: selectedEvalType,
+                decoration: InputDecoration(
+                  labelText: "EVALUATION TYPE",
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: "both",
+                    child: Text("Both"),
+                  ),
+                  DropdownMenuItem(
+                    value: "student",
+                    child: Text("Student"),
+                  ),
+                  DropdownMenuItem(
+                    value: "peer",
+                    child: Text("Peer"),
+                  ),
+                ],
+                onChanged: (v) {
+                  setState(() {
+                    selectedEvalType = v!;
+                  });
+
+                  getQuestions();
+                },
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: courses.contains(selectedCourse)
+                          ? selectedCourse
+                          : null,
+                      decoration: InputDecoration(
+                        labelText: "SELECT COURSE",
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items: courses.map<DropdownMenuItem<String>>((e) {
+                        return DropdownMenuItem(
+                          value: e.toString(),
+                          child: Text(
+                            e.toString(),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          selectedCourse = v!;
+                        });
+
+                        getQuestions();
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: selectedEvalType,
+                      decoration: InputDecoration(
+                        labelText: "EVALUATION TYPE",
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: "both",
+                          child: Text("Both"),
+                        ),
+                        DropdownMenuItem(
+                          value: "student",
+                          child: Text("Student"),
+                        ),
+                        DropdownMenuItem(
+                          value: "peer",
+                          child: Text("Peer"),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        setState(() {
+                          selectedEvalType = v!;
+                        });
+
+                        getQuestions();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            const SizedBox(height: 14),
+
+            DropdownButtonFormField<String>(
+              value: selectedQuestionStatus,
+              decoration: InputDecoration(
+                labelText: "QUESTION TYPE",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: "all",
+                  child: Text("All Questions"),
+                ),
+                DropdownMenuItem(
+                  value: "critical",
+                  child: Text("Critical Questions"),
+                ),
+              ],
+              onChanged: (v) {
+                setState(() {
+                  selectedQuestionStatus = v!;
+                });
+
+                getQuestions();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -440,26 +675,33 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                       child: const Icon(Icons.arrow_back),
                     ),
                   ),
+
                   const SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Question Analysis",
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w900,
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Question Analysis",
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                      Text(
-                        "Teacher: ${widget.teacherName} • Session: ${widget.sessionId}",
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
+                        Text(
+                          "Teacher: ${widget.teacherName} • Session: ${widget.sessionId}",
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
+
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -471,79 +713,40 @@ class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              // Check if the list contains the value before assigning it
-                              value: courses.contains(selectedCourse)
-                                  ? selectedCourse
-                                  : null,
-                              decoration: InputDecoration(
-                                labelText: "SELECT COURSE",
-                                // ... rest of your decoration
-                              ),
-                              items: courses.map<DropdownMenuItem<String>>((e) {
-                                return DropdownMenuItem(
-                                  value: e.toString(), // Ensure it's a string
-                                  child: Text(e.toString()),
-                                );
-                              }).toList(),
-                              onChanged: (v) {
-                                setState(() {
-                                  selectedCourse = v!;
-                                });
-                                getQuestions();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              initialValue: selectedEvalType,
-                              decoration: InputDecoration(
-                                labelText: "EVALUATION TYPE",
-                                filled: true,
-                                fillColor: Colors.grey.shade100,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: "both",
-                                  child: Text("Both"),
-                                ),
-                                DropdownMenuItem(
-                                  value: "student",
-                                  child: Text("Student"),
-                                ),
-                                DropdownMenuItem(
-                                  value: "peer",
-                                  child: Text("Peer"),
-                                ),
-                              ],
-                              onChanged: (v) {
-                                setState(() {
-                                  selectedEvalType = v!;
-                                });
-                                getQuestions();
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: buildFilters(),
                     ),
+
                     const SizedBox(height: 20),
+
                     if (loading)
                       const Padding(
                         padding: EdgeInsets.all(40),
                         child: CircularProgressIndicator(),
                       ),
+
+                    if (!loading && questions.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(30),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "No Questions Found",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+
                     ...questions.asMap().entries.map(
-                      (e) => buildQuestionCard(e.value, e.key),
-                    ),
+                          (e) => buildQuestionCard(e.value, e.key),
+                        ),
                   ],
                 ),
               ),

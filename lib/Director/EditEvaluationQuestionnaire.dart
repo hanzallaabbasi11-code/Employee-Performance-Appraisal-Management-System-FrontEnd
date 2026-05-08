@@ -18,15 +18,17 @@ class EditQuestionnaireScreen extends StatefulWidget {
 class QuestionItem {
   int id; // 0 for new questions
   String text;
+  bool isCritical; // 🔥 Added for critical question status
 
-  QuestionItem({required this.id, required this.text});
+  QuestionItem({required this.id, required this.text, this.isCritical = false});
 }
 
 class _EditQuestionnaireScreenState extends State<EditQuestionnaireScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController evaluationTypeController = TextEditingController();
   final TextEditingController newQuestionController = TextEditingController();
-
+  
+  bool isNewQuestionCritical = false; // 🔥 Tracks checkbox for the "Add" field
   List<QuestionItem> questions = [];
   List<int> deletedIds = [];
   bool loading = true;
@@ -51,7 +53,11 @@ class _EditQuestionnaireScreenState extends State<EditQuestionnaireScreen> {
         titleController.text = data['title'] ?? '';
         evaluationTypeController.text = data['evaluationType'] ?? '';
         questions = (data['questions'] as List)
-            .map((q) => QuestionItem(id: q['id'], text: q['questionText']))
+            .map((q) => QuestionItem(
+                  id: q['id'], 
+                  text: q['questionText'],
+                  isCritical: q['isCritical'] ?? false, // 🔥 Load from API
+                ))
             .toList();
         loading = false;
       });
@@ -83,7 +89,11 @@ class _EditQuestionnaireScreenState extends State<EditQuestionnaireScreen> {
       "Type": evaluationTypeController.text,
       "DeletedIds": deletedIds,
       "Questions": questions
-          .map((q) => {"Id": q.id, "QuestionText": q.text})
+          .map((q) => {
+                "Id": q.id, 
+                "QuestionText": q.text,
+                "IsCritical": q.isCritical // 🔥 Send to API
+              })
           .toList(),
     };
 
@@ -178,8 +188,13 @@ class _EditQuestionnaireScreenState extends State<EditQuestionnaireScreen> {
                   onPressed: () {
                     if (newQuestionController.text.isNotEmpty) {
                       setState(() {
-                        questions.add(QuestionItem(id: 0, text: newQuestionController.text));
+                        questions.add(QuestionItem(
+                          id: 0, 
+                          text: newQuestionController.text,
+                          isCritical: isNewQuestionCritical, // 🔥 Use state
+                        ));
                         newQuestionController.clear();
+                        isNewQuestionCritical = false; // 🔥 Reset
                       });
                     }
                   },
@@ -189,6 +204,18 @@ class _EditQuestionnaireScreenState extends State<EditQuestionnaireScreen> {
                   ),
                   child: const Text('+', style: TextStyle(fontSize: 20)),
                 ),
+              ],
+            ),
+            
+            // 🔥 Add Critical Checkbox for New Question
+            Row(
+              children: [
+                Checkbox(
+                  value: isNewQuestionCritical,
+                  activeColor: Colors.green,
+                  onChanged: (val) => setState(() => isNewQuestionCritical = val!),
+                ),
+                const Text("Mark as Critical", style: TextStyle(color: Colors.red, fontSize: 12)),
               ],
             ),
             const SizedBox(height: 16),
@@ -211,36 +238,62 @@ class _EditQuestionnaireScreenState extends State<EditQuestionnaireScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Row(
+                    child: Column(
                       children: [
-                        CircleAvatar(
-                          backgroundColor: Colors.green,
-                          child: Text(
-                            '${index + 1}',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: questionController,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: q.isCritical ? Colors.red : Colors.green, // 🔥 Dynamic color
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
                             ),
-                            onChanged: (val) {
-                              q.text = val;
-                            },
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: questionController,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                ),
+                                onChanged: (val) {
+                                  q.text = val;
+                                },
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  if (q.id != 0) deletedIds.add(q.id);
+                                  questions.removeAt(index);
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            setState(() {
-                              if (q.id != 0) deletedIds.add(q.id);
-                              questions.removeAt(index);
-                            });
-                          },
+                        // 🔥 Inline Checkbox for existing questions
+                        Row(
+                          children: [
+                            const SizedBox(width: 52), // Align with text
+                            SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: Checkbox(
+                                value: q.isCritical,
+                                activeColor: Colors.red,
+                                onChanged: (val) {
+                                  setState(() {
+                                    q.isCritical = val!;
+                                  });
+                                },
+                              ),
+                            ),
+                            const Text(" Critical Question", 
+                              style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
                         ),
+                        const SizedBox(height: 4),
                       ],
                     ),
                   ),
@@ -261,7 +314,7 @@ class _EditQuestionnaireScreenState extends State<EditQuestionnaireScreen> {
                 ),
                 child: saving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Changes', style: TextStyle(fontSize: 18)),
+                    : const Text('Save All Changes', style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
             ),
           ],

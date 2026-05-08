@@ -2,6 +2,8 @@
 
 import 'dart:convert';
 //import 'package:epams/Director/DetailComparison.dart';
+import 'package:epams/Director/CompareResult.dart';
+import 'package:epams/Director/DetailComparison.dart';
 import 'package:epams/Director/DetailedPerformance.dart';
 //import 'package:epams/Director/ViewPerformance.dart';
 import 'package:epams/Url.dart';
@@ -310,6 +312,12 @@ class _SeeperformanceState extends State<Seeperformance> {
 
           courseFilter(),
           SizedBox(height: 10),
+
+          ElevatedButton(onPressed:()
+          
+          {
+             Navigator.push(context, MaterialPageRoute(builder: (context)=> Detailcomparison()));
+          } , child: Text('Detailed')),
 
           performanceChart(),
           SizedBox(height: 10),

@@ -15,6 +15,9 @@ class Createnewquestionnaier extends StatefulWidget {
 class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
   String? selectedEvaluationType;
   final TextEditingController questionController = TextEditingController();
+  
+  // 🔥 New state for the checkbox
+  bool isCritical = false;
 
   final List<String> evaluationTypes = [
     'Teacher Evaluation',
@@ -24,7 +27,8 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
     'Society Mentor'
   ];
 
-  final List<String> questions = [];
+  // 🔥 Changed to List of Maps to store question data and critical status
+  final List<Map<String, dynamic>> questions = [];
 
   void addQuestion() {
     if (selectedEvaluationType == null) {
@@ -42,8 +46,13 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
     }
 
     setState(() {
-      questions.add(questionController.text.trim());
+      // 🔥 Adding as an object to match backend expectations
+      questions.add({
+        "QuestionText": questionController.text.trim(),
+        "IsCritical": isCritical,
+      });
       questionController.clear();
+      isCritical = false; // Reset checkbox after adding
     });
   }
 
@@ -62,6 +71,7 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
       return;
     }
 
+    // 🔥 Payload now contains list of objects
     final payload = {
       "EvaluationType": selectedEvaluationType,
       "Questions": questions,
@@ -81,7 +91,6 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
           context,
         ).showSnackBar(SnackBar(content: Text(data['message'])));
 
-        // ✅ Clear form after success
         setState(() {
           questions.clear();
           selectedEvaluationType = null;
@@ -120,7 +129,7 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: selectedEvaluationType,
+              value: selectedEvaluationType,
               items: evaluationTypes
                   .map(
                     (type) => DropdownMenuItem(value: type, child: Text(type)),
@@ -147,20 +156,31 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
+            TextField(
+              controller: questionController,
+              decoration: InputDecoration(
+                hintText: 'Type your question here...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            
+            // 🔥 Added Critical Checkbox Row
             Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: questionController,
-                    decoration: InputDecoration(
-                      hintText: 'Type your question here...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
+                Checkbox(
+                  value: isCritical,
+                  activeColor: Colors.green,
+                  onChanged: (val) {
+                    setState(() {
+                      isCritical = val!;
+                    });
+                  },
                 ),
-                const SizedBox(width: 8),
+                const Text("Mark as Critical Question", 
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
+                const Spacer(),
                 ElevatedButton.icon(
                   onPressed: addQuestion,
                   icon: const Icon(Icons.add),
@@ -188,17 +208,21 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
               child: ListView.builder(
                 itemCount: questions.length,
                 itemBuilder: (context, index) {
+                  final q = questions[index];
                   return Card(
                     color: Colors.green.shade50,
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.green,
+                        backgroundColor: q["IsCritical"] ? Colors.red : Colors.green,
                         child: Text(
                           '${index + 1}',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
-                      title: Text(questions[index]),
+                      title: Text(q["QuestionText"]),
+                      subtitle: q["IsCritical"] 
+                        ? const Text("Critical", style: TextStyle(color: Colors.red, fontSize: 12)) 
+                        : null,
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () {
@@ -223,7 +247,7 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: const Text(
-                  'Save / Submit Form',
+                  'Save & Publish Form',
                   style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
