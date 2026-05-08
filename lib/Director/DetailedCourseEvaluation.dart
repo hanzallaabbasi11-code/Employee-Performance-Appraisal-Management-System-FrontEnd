@@ -24,8 +24,7 @@ class Detailedcourseevaluation extends StatefulWidget {
       _DetailedcourseevaluationState();
 }
 
-class _DetailedcourseevaluationState
-    extends State<Detailedcourseevaluation> {
+class _DetailedcourseevaluationState extends State<Detailedcourseevaluation> {
   List questions = [];
   List courses = [];
 
@@ -45,7 +44,8 @@ class _DetailedcourseevaluationState
   Future<void> getCourses() async {
     final response = await http.get(
       Uri.parse(
-          "$Url/ExtraFeatures/GetMyCourses/${widget.teacherId}/${widget.sessionId}"),
+        "$Url/ExtraFeatures/GetMyCourses/${widget.teacherId}/${widget.sessionId}",
+      ),
     );
 
     if (response.statusCode == 200) {
@@ -62,7 +62,8 @@ class _DetailedcourseevaluationState
 
     final response = await http.get(
       Uri.parse(
-          "$Url/ExtraFeatures/GetCourseQuestionDetail/${widget.teacherId}/${widget.sessionId}/$selectedCourse?evaluationType=$selectedEvalType"),
+        "$Url/ExtraFeatures/GetCourseQuestionDetail/${widget.teacherId}/${widget.sessionId}/$selectedCourse?evaluationType=$selectedEvalType",
+      ),
     );
 
     if (response.statusCode == 200) {
@@ -89,16 +90,12 @@ class _DetailedcourseevaluationState
     }
   }
 
-  Widget scoreBar(
-      String title, int value, int total, Color color) {
+  Widget scoreBar(String title, int value, int total, Color color) {
     double width = total == 0 ? 0 : value / total;
 
     return Row(
       children: [
-        SizedBox(
-          width: 30,
-          child: Text(title),
-        ),
+        SizedBox(width: 30, child: Text(title)),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
@@ -114,7 +111,7 @@ class _DetailedcourseevaluationState
         Text(
           value.toString(),
           style: const TextStyle(fontWeight: FontWeight.bold),
-        )
+        ),
       ],
     );
   }
@@ -130,9 +127,7 @@ class _DetailedcourseevaluationState
           height: MediaQuery.of(context).size.height * .65,
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(30),
-            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
           ),
           child: Column(
             children: [
@@ -160,7 +155,7 @@ class _DetailedcourseevaluationState
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -174,8 +169,7 @@ class _DetailedcourseevaluationState
               const SizedBox(height: 20),
               Expanded(
                 child: ListView.builder(
-                  itemCount:
-                      item["StudentDetails"].length,
+                  itemCount: item["StudentDetails"].length,
                   itemBuilder: (_, index) {
                     final d = item["StudentDetails"][index];
 
@@ -184,15 +178,12 @@ class _DetailedcourseevaluationState
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.grey.shade200,
-                        ),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor:
-                                Colors.grey.shade100,
+                            backgroundColor: Colors.grey.shade100,
                             child: const Icon(
                               Icons.person_outline,
                               color: Colors.grey,
@@ -201,38 +192,32 @@ class _DetailedcourseevaluationState
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   d["StudentName"] ?? "",
                                   style: const TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold,
+                                    fontWeight: FontWeight.bold,
                                     fontSize: 18,
                                   ),
                                 ),
                                 Text(
                                   "ID: ${d["RollNo"]}",
-                                  style: const TextStyle(
-                                      color: Colors.grey),
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
                               ],
                             ),
                           ),
                           Container(
-                            padding:
-                                const EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
                               color: (d["Score"] >= 3)
-                                  ? Colors.green
-                                      .shade100
+                                  ? Colors.green.shade100
                                   : Colors.red.shade100,
-                              borderRadius:
-                                  BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                             child: Text(
                               "Score: ${d["Score"]}",
@@ -240,11 +225,10 @@ class _DetailedcourseevaluationState
                                 color: (d["Score"] >= 3)
                                     ? Colors.green
                                     : Colors.red,
-                                fontWeight:
-                                    FontWeight.bold,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          )
+                          ),
                         ],
                       ),
                     );
@@ -272,19 +256,17 @@ class _DetailedcourseevaluationState
                   const SizedBox(width: 10),
                   CircleAvatar(
                     radius: 22,
-                    backgroundColor:
-                        Colors.green.shade100,
+                    backgroundColor: Colors.green.shade100,
                     child: Text(
-                      item["AverageScore"]
-                          .toStringAsFixed(2),
+                      item["AverageScore"].toStringAsFixed(2),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.green,
                       ),
                     ),
-                  )
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         );
@@ -304,10 +286,7 @@ class _DetailedcourseevaluationState
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(.08),
-              blurRadius: 10,
-            )
+            BoxShadow(color: Colors.grey.withOpacity(.08), blurRadius: 10),
           ],
         ),
         child: Column(
@@ -320,8 +299,7 @@ class _DetailedcourseevaluationState
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
-                    borderRadius:
-                        BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
                     "${index + 1}",
@@ -334,8 +312,7 @@ class _DetailedcourseevaluationState
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         item["QuestionText"],
@@ -347,23 +324,21 @@ class _DetailedcourseevaluationState
                       const SizedBox(height: 8),
                       Row(
                         children: List.generate(
-                          item["AverageScore"]
-                              .round(),
+                          item["AverageScore"].round(),
                           (index) => const Icon(
                             Icons.star,
                             color: Colors.amber,
                             size: 18,
                           ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
                 Column(
                   children: [
                     Text(
-                      item["AverageScore"]
-                          .toStringAsFixed(2),
+                      item["AverageScore"].toStringAsFixed(2),
                       style: const TextStyle(
                         color: Color(0xff0b7a34),
                         fontWeight: FontWeight.bold,
@@ -379,7 +354,7 @@ class _DetailedcourseevaluationState
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
             const SizedBox(height: 26),
@@ -396,33 +371,13 @@ class _DetailedcourseevaluationState
               ],
             ),
             const SizedBox(height: 18),
-            scoreBar(
-              "S4",
-              item["Score4"],
-              total,
-              Colors.green,
-            ),
+            scoreBar("S4", item["Score4"], total, Colors.green),
             const SizedBox(height: 12),
-            scoreBar(
-              "S3",
-              item["Score3"],
-              total,
-              Colors.lightGreen,
-            ),
+            scoreBar("S3", item["Score3"], total, Colors.lightGreen),
             const SizedBox(height: 12),
-            scoreBar(
-              "S2",
-              item["Score2"],
-              total,
-              Colors.orange,
-            ),
+            scoreBar("S2", item["Score2"], total, Colors.orange),
             const SizedBox(height: 12),
-            scoreBar(
-              "S1",
-              item["Score1"],
-              total,
-              Colors.red,
-            ),
+            scoreBar("S1", item["Score1"], total, Colors.red),
             const SizedBox(height: 18),
             Row(
               children: [
@@ -435,16 +390,14 @@ class _DetailedcourseevaluationState
                     color: item["Type"] == "Student"
                         ? Colors.blue.shade50
                         : Colors.purple.shade50,
-                    borderRadius:
-                        BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                   child: Text(
                     "${item["Type"]} Eval",
                     style: TextStyle(
-                      color:
-                          item["Type"] == "Student"
-                              ? Colors.blue
-                              : Colors.purple,
+                      color: item["Type"] == "Student"
+                          ? Colors.blue
+                          : Colors.purple,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -456,9 +409,9 @@ class _DetailedcourseevaluationState
                     color: Colors.grey,
                     fontStyle: FontStyle.italic,
                   ),
-                )
+                ),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -482,16 +435,14 @@ class _DetailedcourseevaluationState
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Icon(Icons.arrow_back),
                     ),
                   ),
                   const SizedBox(width: 14),
                   Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         "Question Analysis",
@@ -502,63 +453,45 @@ class _DetailedcourseevaluationState
                       ),
                       Text(
                         "Teacher: ${widget.teacherName} • Session: ${widget.sessionId}",
-                        style: const TextStyle(
-                          color: Colors.grey,
-                        ),
-                      )
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Column(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(24),
                       ),
                       child: Row(
                         children: [
                           Expanded(
-                            child:
-                                DropdownButtonFormField<String>(
-                              initialValue: selectedCourse,
+                            child: DropdownButtonFormField<String>(
+                              // Check if the list contains the value before assigning it
+                              value: courses.contains(selectedCourse)
+                                  ? selectedCourse
+                                  : null,
                               decoration: InputDecoration(
                                 labelText: "SELECT COURSE",
-                                filled: true,
-                                fillColor:
-                                    Colors.grey.shade100,
-                                border:
-                                    OutlineInputBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                          16),
-                                  borderSide:
-                                      BorderSide.none,
-                                ),
+                                // ... rest of your decoration
                               ),
-                              items: courses
-                                  .map<
-                                          DropdownMenuItem<
-                                              String>>(
-                                      (e) =>
-                                          DropdownMenuItem(
-                                            value: e,
-                                            child:
-                                                Text(e),
-                                          ))
-                                  .toList(),
+                              items: courses.map<DropdownMenuItem<String>>((e) {
+                                return DropdownMenuItem(
+                                  value: e.toString(), // Ensure it's a string
+                                  child: Text(e.toString()),
+                                );
+                              }).toList(),
                               onChanged: (v) {
                                 setState(() {
-                                  selectedCourse =
-                                      v!;
+                                  selectedCourse = v!;
                                 });
                                 getQuestions();
                               },
@@ -566,22 +499,15 @@ class _DetailedcourseevaluationState
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child:
-                                DropdownButtonFormField<String>(
+                            child: DropdownButtonFormField<String>(
                               initialValue: selectedEvalType,
                               decoration: InputDecoration(
-                                labelText:
-                                    "EVALUATION TYPE",
+                                labelText: "EVALUATION TYPE",
                                 filled: true,
-                                fillColor:
-                                    Colors.grey.shade100,
-                                border:
-                                    OutlineInputBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                          16),
-                                  borderSide:
-                                      BorderSide.none,
+                                fillColor: Colors.grey.shade100,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
                                 ),
                               ),
                               items: const [
@@ -600,13 +526,12 @@ class _DetailedcourseevaluationState
                               ],
                               onChanged: (v) {
                                 setState(() {
-                                  selectedEvalType =
-                                      v!;
+                                  selectedEvalType = v!;
                                 });
                                 getQuestions();
                               },
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -614,18 +539,15 @@ class _DetailedcourseevaluationState
                     if (loading)
                       const Padding(
                         padding: EdgeInsets.all(40),
-                        child:
-                            CircularProgressIndicator(),
+                        child: CircularProgressIndicator(),
                       ),
-                    ...questions
-                        .asMap()
-                        .entries
-                        .map((e) => buildQuestionCard(
-                            e.value, e.key))
+                    ...questions.asMap().entries.map(
+                      (e) => buildQuestionCard(e.value, e.key),
+                    ),
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),

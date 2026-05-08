@@ -876,16 +876,61 @@ class _CourseevaluationState extends State<Courseevaluation> {
                 ),
               const SizedBox(height: 24),
               if (courseComparison.isNotEmpty)
-                const Text(
-                  "COURSE DETAILS — CLICK FOR QUESTION-WISE RATINGS",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: Colors.grey,
-                    letterSpacing: 1,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "COURSE DETAILS",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.grey,
+                        letterSpacing: 1,
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => Detailedcourseevaluation(
+                                teacherId: selectedTeacherId!,
+                                teacherName: selectedTeacherName ?? "",
+                                sessionId: selectedSessionId!,
+                                courseCode:
+                                    "", // send empty so next screen handles all
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xff0b7a34),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.visibility_rounded,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          "View Detailed",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              const SizedBox(height: 18),
-              ...courseComparison.map((e) => buildCourseCard(e)),
             ],
           ),
         ),
