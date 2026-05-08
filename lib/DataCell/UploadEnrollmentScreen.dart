@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'dart:convert';
 import 'package:epams/Session.dart';
 import 'package:epams/Url.dart';
@@ -130,7 +132,7 @@ class _UploadEnrollmentScreenState extends State<UploadEnrollmentScreen> {
                 final sessions = snapshot.data!;
 
                 return DropdownButtonFormField<Session>(
-                  value: selectedSession,
+                  initialValue: selectedSession,
                   hint: const Text('Select Session'),
                   items: sessions.map((s) {
                     return DropdownMenuItem<Session>(

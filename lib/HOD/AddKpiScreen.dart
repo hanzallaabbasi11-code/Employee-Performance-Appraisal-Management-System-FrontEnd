@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -428,7 +430,7 @@ class _AddKpiScreenState extends State<AddKpiScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: DropdownButtonFormField<int>(
-        value: value,
+        initialValue: value,
         hint: Text(hint),
         items: list.map((e) {
           return DropdownMenuItem<int>(

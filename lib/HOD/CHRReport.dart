@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously, deprecated_member_use
+
 import 'dart:convert';
 import 'package:epams/HOD/CHRReportDetail.dart';
 import 'package:flutter/material.dart';

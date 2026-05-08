@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, strict_top_level_inference
+
 import 'dart:convert';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +95,7 @@ class _DetailedperformanceState extends State<Detailedperformance> {
   Widget sessionDropdown() {
 
     return DropdownButtonFormField(
-      value: selectedSession,
+      initialValue: selectedSession,
       decoration: InputDecoration(
         labelText: "Select Session",
         border: OutlineInputBorder(
@@ -122,7 +124,7 @@ class _DetailedperformanceState extends State<Detailedperformance> {
   Widget evaluationDropdown() {
 
     return DropdownButtonFormField(
-      value: selectedType,
+      initialValue: selectedType,
       decoration: InputDecoration(
         labelText: "Full Evaluation Type",
         border: OutlineInputBorder(

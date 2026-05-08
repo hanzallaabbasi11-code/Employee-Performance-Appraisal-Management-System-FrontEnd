@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'dart:convert';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
@@ -98,7 +100,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              value: selectedEmail,
+              initialValue: selectedEmail,
               hint: const Text("Select Email"),
               isExpanded: true,
               items: emails.map<DropdownMenuItem<String>>((e) {
@@ -118,7 +120,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
 
             // ✅ NEW FILTER DROPDOWN (NO DESIGN CHANGE)
             DropdownButtonFormField<String>(
-              value: selectedFilter,
+              initialValue: selectedFilter,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12),
@@ -220,7 +222,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                       ),
                     ),

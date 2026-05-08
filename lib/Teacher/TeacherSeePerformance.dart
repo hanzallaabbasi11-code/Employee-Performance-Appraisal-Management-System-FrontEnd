@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, deprecated_member_use
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -108,7 +110,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                 return Column(
                   children: [
                     DropdownButtonFormField<Session>(
-                      value: selectedSession,
+                      initialValue: selectedSession,
                       hint: const Text("Select Session"),
                       items: sessions.map((s) {
                         return DropdownMenuItem(
@@ -133,7 +135,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                     const SizedBox(height: 10),
 
                     DropdownButtonFormField<String>(
-                      value: selectedKpiId,
+                      initialValue: selectedKpiId,
                       hint: const Text("All Categories"),
                       items: [
                         const DropdownMenuItem(
@@ -145,7 +147,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                             value: e["id"].toString(),
                             child: Text(e["name"]),
                           );
-                        }).toList(),
+                        }),
                       ],
                       onChanged: (val) {
                         setState(() {

@@ -1,4 +1,4 @@
-// courseevaluation.dart
+// ignore_for_file: file_names, deprecated_member_use
 
 import 'dart:convert';
 //import 'package:epams/Director/CourseEvaluation.dart';
@@ -389,7 +389,7 @@ class _CourseevaluationState extends State<Courseevaluation> {
                             ? Column(
                                 children: [
                                   DropdownButtonFormField<int>(
-                                    value: selectedSessionId,
+                                    initialValue: selectedSessionId,
                                     isExpanded: true,
                                     decoration: InputDecoration(
                                       filled: true,
@@ -427,7 +427,7 @@ class _CourseevaluationState extends State<Courseevaluation> {
                                   const SizedBox(height: 14),
 
                                   DropdownButtonFormField<String>(
-                                    value: selectedTeacherId,
+                                    initialValue: selectedTeacherId,
                                     isExpanded: true,
                                     decoration: InputDecoration(
                                       filled: true,
@@ -466,7 +466,7 @@ class _CourseevaluationState extends State<Courseevaluation> {
                                 children: [
                                   Expanded(
                                     child: DropdownButtonFormField<int>(
-                                      value: selectedSessionId,
+                                      initialValue: selectedSessionId,
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         filled: true,
@@ -508,7 +508,7 @@ class _CourseevaluationState extends State<Courseevaluation> {
 
                                   Expanded(
                                     child: DropdownButtonFormField<String>(
-                                      value: selectedTeacherId,
+                                      initialValue: selectedTeacherId,
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         filled: true,
@@ -560,7 +560,7 @@ class _CourseevaluationState extends State<Courseevaluation> {
                             ? Column(
                                 children: [
                                   DropdownButtonFormField<String>(
-                                    value: selectedEvalType,
+                                    initialValue: selectedEvalType,
                                     isExpanded: true,
                                     decoration: InputDecoration(
                                       filled: true,
@@ -646,7 +646,7 @@ class _CourseevaluationState extends State<Courseevaluation> {
                                 children: [
                                   Expanded(
                                     child: DropdownButtonFormField<String>(
-                                      value: selectedEvalType,
+                                      initialValue: selectedEvalType,
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         filled: true,

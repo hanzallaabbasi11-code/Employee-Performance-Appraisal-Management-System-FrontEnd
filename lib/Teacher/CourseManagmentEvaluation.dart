@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 
 class Coursemanagmentevaluation extends StatefulWidget {
@@ -109,7 +111,7 @@ class _CoursemanagmentevaluationState extends State<Coursemanagmentevaluation> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          value: selectedSession,
+                          initialValue: selectedSession,
                           items: ["Fall 2025", "Spring 2025"]
                               .map(
                                 (e) => DropdownMenuItem<String>(
@@ -133,7 +135,7 @@ class _CoursemanagmentevaluationState extends State<Coursemanagmentevaluation> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          value: selectedCourse,
+                          initialValue: selectedCourse,
                           items: ["All Courses", "Database Systems"]
                               .map(
                                 (e) => DropdownMenuItem<String>(

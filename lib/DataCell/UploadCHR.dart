@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, deprecated_member_use
+
 import 'dart:convert';
 //import 'dart:io';
 import 'package:flutter/foundation.dart'; // For kIsWeb
@@ -172,7 +174,7 @@ class _UploadchrState extends State<Uploadchr> {
                   isExpanded: true,
                   decoration: _inputStyle(),
                   hint: const Text("Select Session"),
-                  value: selectedSession,
+                  initialValue: selectedSession,
                   items: snapshot.data?.map((s) {
                     return DropdownMenuItem(value: s, child: Text(s.name));
                   }).toList(),

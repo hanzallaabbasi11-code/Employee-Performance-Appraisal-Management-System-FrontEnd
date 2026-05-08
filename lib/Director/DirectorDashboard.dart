@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:epams/Director/AddKPI.dart';
 import 'package:epams/Director/AddPeerEvaluators.dart';
 import 'package:epams/Director/ConfidentialEvaluation.dart';
@@ -34,6 +36,7 @@ class _DirectordashboardState extends State<Directordashboard> {
           border: Border.all(color: Colors.green.shade200),
           boxShadow: [
             BoxShadow(
+              // ignore: deprecated_member_use
               color: Colors.black.withOpacity(0.03),
               blurRadius: 6,
               offset: const Offset(0, 3),

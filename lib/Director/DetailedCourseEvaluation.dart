@@ -1,4 +1,4 @@
-// detailedcourseevaluation.dart
+// ignore_for_file: file_names, deprecated_member_use
 
 import 'dart:convert';
 import 'package:epams/Url.dart';
@@ -529,7 +529,7 @@ class _DetailedcourseevaluationState
                           Expanded(
                             child:
                                 DropdownButtonFormField<String>(
-                              value: selectedCourse,
+                              initialValue: selectedCourse,
                               decoration: InputDecoration(
                                 labelText: "SELECT COURSE",
                                 filled: true,
@@ -568,7 +568,7 @@ class _DetailedcourseevaluationState
                           Expanded(
                             child:
                                 DropdownButtonFormField<String>(
-                              value: selectedEvalType,
+                              initialValue: selectedEvalType,
                               decoration: InputDecoration(
                                 labelText:
                                     "EVALUATION TYPE",

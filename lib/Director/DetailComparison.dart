@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, avoid_print, use_build_context_synchronously
+
 import 'dart:convert';
 import 'package:epams/Director/CompareResult.dart';
 import 'package:epams/Url.dart';
@@ -291,7 +293,7 @@ class _DetailcomparisonState extends State<Detailcomparison> {
             if (mode == "course") ...[
 
               DropdownButtonFormField(
-                value: selectedCourse,
+                initialValue: selectedCourse,
                 decoration: const InputDecoration(labelText: "Select Course"),
                 items: courses.map((c) {
                   return DropdownMenuItem(value: c, child: Text(c));
@@ -309,7 +311,7 @@ class _DetailcomparisonState extends State<Detailcomparison> {
               const SizedBox(height: 20),
 
               DropdownButtonFormField(
-                value: teacherA,
+                initialValue: teacherA,
                 decoration: const InputDecoration(labelText: "Teacher A"),
                 items: teachers.map((t) {
                   return DropdownMenuItem(
@@ -327,7 +329,7 @@ class _DetailcomparisonState extends State<Detailcomparison> {
               const SizedBox(height: 20),
 
               DropdownButtonFormField(
-                value: teacherB,
+                initialValue: teacherB,
                 decoration: const InputDecoration(labelText: "Teacher B"),
                 items: teachers.map((t) {
                   return DropdownMenuItem(
@@ -348,7 +350,7 @@ class _DetailcomparisonState extends State<Detailcomparison> {
             if (mode == "session") ...[
 
               DropdownButtonFormField(
-                value: teacherA,
+                initialValue: teacherA,
                 decoration: const InputDecoration(labelText: "Select Teacher"),
                 items: teachers.map((t) {
                   return DropdownMenuItem(
@@ -366,7 +368,7 @@ class _DetailcomparisonState extends State<Detailcomparison> {
               const SizedBox(height: 20),
 
               DropdownButtonFormField(
-                value: session1,
+                initialValue: session1,
                 decoration: const InputDecoration(labelText: "Session 1"),
                 items: sessions.map((s) {
                   return DropdownMenuItem(
@@ -384,7 +386,7 @@ class _DetailcomparisonState extends State<Detailcomparison> {
               const SizedBox(height: 20),
 
               DropdownButtonFormField(
-                value: session2,
+                initialValue: session2,
                 decoration: const InputDecoration(labelText: "Session 2"),
                 items: sessions.map((s) {
                   return DropdownMenuItem(

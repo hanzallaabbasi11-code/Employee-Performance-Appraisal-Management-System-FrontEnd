@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, strict_top_level_inference
+
 import 'dart:convert';
 //import 'package:epams/Director/DetailComparison.dart';
 import 'package:epams/Director/DetailedPerformance.dart';
@@ -155,7 +157,7 @@ class _SeeperformanceState extends State<Seeperformance> {
   // ================= DROPDOWNS =================
   Widget sessionDropdown() {
     return DropdownButtonFormField(
-      value: selectedSession,
+      initialValue: selectedSession,
       items: sessions.map<DropdownMenuItem>((s) {
         return DropdownMenuItem(
           value: s['id'],
@@ -172,7 +174,7 @@ class _SeeperformanceState extends State<Seeperformance> {
 
   Widget departmentDropdown() {
     return DropdownButtonFormField(
-      value: selectedDepartment,
+      initialValue: selectedDepartment,
       items: employeeTypes.map((d) {
         return DropdownMenuItem(
           value: d,
@@ -312,7 +314,7 @@ class _SeeperformanceState extends State<Seeperformance> {
           performanceChart(),
           SizedBox(height: 10),
 
-          ...teachers.map((t) => teacherCard(t)).toList(),
+          ...teachers.map((t) => teacherCard(t)),
         ],
       ),
     );

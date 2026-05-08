@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously
+
 import 'dart:convert';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
@@ -576,7 +578,7 @@ class _QuestionnaireCardState extends State<QuestionnaireCard> {
                     : Switch(
                         value: isActive,
                         onChanged: onToggle,
-                        activeColor: Colors.green,
+                        activeThumbColor: Colors.green,
                       ),
               ],
             ),

@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 class SubKpi {
   final String name;
   final int score;

@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 class TeacherModel {
   final String teacherID;
   final String teacherName;
@@ -17,7 +19,7 @@ class TeacherModel {
     );
   }
 
-  get userid => null;
+  Null get userid => null;
 
-  get sessionID => null;
+  Null get sessionID => null;
 }

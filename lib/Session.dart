@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 class Session {
   final int id;
   final String name;
@@ -20,5 +22,5 @@ class Session {
   @override
   int get hashCode => id.hashCode;
 
-  static get userId => null;
+  static Null get userId => null;
 }

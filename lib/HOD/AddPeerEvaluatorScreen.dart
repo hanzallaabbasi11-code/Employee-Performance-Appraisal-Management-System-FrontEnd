@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously
+
 import 'dart:convert';
 
 import 'package:epams/Session.dart';
@@ -298,7 +300,7 @@ class _AddPeerEvaluatorScreenState extends State<AddPeerEvaluatorScreen> {
                   final sessions = snapshot.data!;
 
                   return DropdownButtonFormField<Session>(
-                    value: selectedSession,
+                    initialValue: selectedSession,
                     hint: const Text('Select Session'),
                     items: sessions.map((s) {
                       return DropdownMenuItem<Session>(

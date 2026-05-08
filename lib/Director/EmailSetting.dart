@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, avoid_print, use_build_context_synchronously
+
 import 'dart:convert';
 import 'package:epams/Director/DirectorDashboard.dart';
 import 'package:epams/Url.dart';
@@ -290,7 +292,7 @@ class _EmailsettingState extends State<Emailsetting> {
                             /// TOGGLE SWITCH
                             Switch(
                               value: email.isActive,
-                              activeColor: Colors.green,
+                              activeThumbColor: Colors.green,
                               onChanged: (value) {
                                 if (value) {
                                   activateEmail(email.id);

@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'dart:convert';
 import 'package:epams/HOD/CMModal.dart';
 import 'package:epams/HOD/CourseManagementModel.dart';
@@ -144,7 +146,7 @@ class _CoursemanagementscreenState extends State<Coursemanagementscreen> {
                   final sessions = snapshot.data!;
 
                   return DropdownButtonFormField<Session>(
-                    value: selectedSession,
+                    initialValue: selectedSession,
                     hint: const Text('Select Session'),
 
                     items: sessions.map((s) {
@@ -272,7 +274,7 @@ class _CoursemanagementscreenState extends State<Coursemanagementscreen> {
                                         ],
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
 
                                   const SizedBox(height: 10),
 

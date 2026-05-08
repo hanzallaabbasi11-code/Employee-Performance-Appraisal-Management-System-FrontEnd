@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously
+
 import 'dart:convert';
 //import 'package:epams/Student/Confidential_db.dart';
 import 'package:epams/Url.dart';

@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously, deprecated_member_use
+
 import 'dart:convert';
 import 'package:epams/Teacher/QuestionnaireModel.dart';
 import 'package:epams/Teacher/TeacherModel.dart';

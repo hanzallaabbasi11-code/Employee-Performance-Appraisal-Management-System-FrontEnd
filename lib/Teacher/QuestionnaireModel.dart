@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 class QuestionnaireModel {
   final int id;
   final String type;

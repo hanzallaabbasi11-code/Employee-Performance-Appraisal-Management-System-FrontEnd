@@ -1,3 +1,6 @@
+// ignore: file_names
+// ignore_for_file: non_constant_identifier_names, file_names, duplicate_ignore
+
 final Url='http://192.168.31.168/EPAMS/api'; 
 
 //192.168.31.168 dione

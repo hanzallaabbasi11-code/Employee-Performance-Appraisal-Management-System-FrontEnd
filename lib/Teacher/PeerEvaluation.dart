@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, avoid_print, use_build_context_synchronously
+
 import 'dart:convert';
 import 'package:epams/Teacher/PeerEvaluationForm.dart';
 import 'package:epams/Teacher/QuestionnaireModel.dart';

@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, avoid_print
+
 import 'dart:convert';
 import 'package:epams/Student/EvaluationForm.dart';
 import 'package:epams/Student/ConfidentialEvaluation.dart';

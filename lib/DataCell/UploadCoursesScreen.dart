@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, avoid_print
+
 import 'package:epams/Url.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';

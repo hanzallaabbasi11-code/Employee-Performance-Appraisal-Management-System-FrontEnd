@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_build_context_synchronously
+
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -118,7 +120,7 @@ class _CreatenewquestionnaierState extends State<Createnewquestionnaier> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: selectedEvaluationType,
+              initialValue: selectedEvaluationType,
               items: evaluationTypes
                   .map(
                     (type) => DropdownMenuItem(value: type, child: Text(type)),

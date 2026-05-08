@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, avoid_print
+
 import 'dart:convert';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
@@ -131,7 +133,7 @@ class _ClassheldreportState extends State<Classheldreport> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: DropdownButtonFormField<int>(
-                value: selectedSession,
+                initialValue: selectedSession,
                 isExpanded: true,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
