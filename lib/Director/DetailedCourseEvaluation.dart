@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class Detailedcourseevaluation extends StatefulWidget {
   final String teacherId;
@@ -86,6 +87,162 @@ class _DetailedcourseevaluationState
     });
   }
 
+  // ================= GRAPH COLOR =================
+  Color getBarColor(double score) {
+    if (score >= 3.5) {
+      return const Color(0xff18863a);
+    } else if (score >= 2.5) {
+      return const Color(0xff7DDF9F);
+    } else if (score >= 1.5) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  // ================= GRAPH =================
+  Widget buildQuestionGraph() {
+    if (questions.isEmpty) return const SizedBox();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(.08),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Question-wise Average Score",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          const Text(
+            "Click any question card below to view evaluator details",
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          SizedBox(
+            height: 350,
+            child: SfCartesianChart(
+              plotAreaBorderWidth: 0,
+              primaryXAxis: CategoryAxis(
+                majorGridLines: const MajorGridLines(width: 0),
+                axisLine: const AxisLine(width: 0),
+                majorTickLines: const MajorTickLines(size: 0),
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              primaryYAxis: NumericAxis(
+                minimum: 0,
+                maximum: 4,
+                interval: 1,
+                majorGridLines: MajorGridLines(
+                  width: 1,
+                  color: Colors.grey.shade200,
+                ),
+                axisLine: const AxisLine(width: 0),
+                majorTickLines: const MajorTickLines(size: 0),
+              ),
+              tooltipBehavior: TooltipBehavior(enable: true),
+              series: <CartesianSeries>[
+                ColumnSeries<Map<String, dynamic>, String>(
+                  width: 0.45,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                  dataSource: questions.asMap().entries.map((e) {
+                    return {
+                      "x": "Q${e.key + 1}",
+                      "y":
+                          (e.value["AverageScore"] ?? 0).toDouble(),
+                    };
+                  }).toList(),
+                  xValueMapper: (data, _) => data["x"],
+                  yValueMapper: (data, _) => data["y"],
+                  pointColorMapper: (data, _) =>
+                      getBarColor(data["y"]),
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Wrap(
+            spacing: 18,
+            runSpacing: 10,
+            children: [
+              buildLegend(
+                const Color(0xff18863a),
+                "Excellent (≥3.5)",
+              ),
+              buildLegend(
+                const Color(0xff7DDF9F),
+                "Good (≥2.5)",
+              ),
+              buildLegend(
+                Colors.orange,
+                "Average (≥1.5)",
+              ),
+              buildLegend(
+                Colors.red,
+                "Poor (<1.5)",
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildLegend(Color color, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 12,
+          width: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget scoreBar(String title, int value, int total, Color color) {
     double width = total == 0 ? 0 : value / total;
 
@@ -154,7 +311,9 @@ class _DetailedcourseevaluationState
                   ),
                 ],
               ),
+
               const SizedBox(height: 10),
+
               Text(
                 item["QuestionText"] ?? "",
                 style: const TextStyle(
@@ -162,7 +321,9 @@ class _DetailedcourseevaluationState
                   fontWeight: FontWeight.w900,
                 ),
               ),
+
               const SizedBox(height: 20),
+
               Expanded(
                 child: ListView.builder(
                   itemCount: item["StudentDetails"].length,
@@ -185,10 +346,13 @@ class _DetailedcourseevaluationState
                               color: Colors.grey,
                             ),
                           ),
+
                           const SizedBox(width: 14),
+
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   d["StudentName"] ?? "",
@@ -197,13 +361,17 @@ class _DetailedcourseevaluationState
                                     fontSize: 18,
                                   ),
                                 ),
+
                                 Text(
                                   "ID: ${d["RollNo"]}",
-                                  style: const TextStyle(color: Colors.grey),
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
+
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -230,38 +398,6 @@ class _DetailedcourseevaluationState
                     );
                   },
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Text(
-                    "Total: ${item["TotalResponses"]} Responses",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const Spacer(),
-                  const Text(
-                    "Avg.",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.green.shade100,
-                    child: Text(
-                      (item["AverageScore"] ?? 0).toStringAsFixed(2),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -314,7 +450,8 @@ class _DetailedcourseevaluationState
 
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       Text(
                         item["QuestionText"] ?? "",
@@ -326,27 +463,30 @@ class _DetailedcourseevaluationState
 
                       const SizedBox(height: 8),
 
-                      Wrap(
-                        children: List.generate(
-                          (item["AverageScore"] ?? 0).round(),
-                          (index) => const Icon(
+                      Row(
+                        children: [
+                          const Icon(
                             Icons.star,
                             color: Colors.amber,
                             size: 18,
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "(${(item["AverageScore"] ?? 0).toStringAsFixed(1)})",
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(width: 10),
-
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.end,
                   children: [
                     Text(
-                      (item["AverageScore"] ?? 0).toStringAsFixed(2),
+                      (item["AverageScore"] ?? 0)
+                          .toStringAsFixed(2),
                       style: const TextStyle(
                         color: Color(0xff0b7a34),
                         fontWeight: FontWeight.bold,
@@ -354,7 +494,8 @@ class _DetailedcourseevaluationState
                       ),
                     ),
                     const Text(
-                      "AVG RATING",
+                      "AVG\nRATING",
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.grey,
                         fontWeight: FontWeight.bold,
@@ -396,68 +537,20 @@ class _DetailedcourseevaluationState
 
             const SizedBox(height: 12),
 
-            scoreBar("S2", item["Score2"] ?? 0, total, Colors.orange),
+            scoreBar(
+              "S2",
+              item["Score2"] ?? 0,
+              total,
+              Colors.orange,
+            ),
 
             const SizedBox(height: 12),
 
-            scoreBar("S1", item["Score1"] ?? 0, total, Colors.red),
-
-            const SizedBox(height: 18),
-
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: item["Type"] == "Student"
-                        ? Colors.blue.shade50
-                        : Colors.purple.shade50,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    "${item["Type"]} Eval",
-                    style: TextStyle(
-                      color: item["Type"] == "Student"
-                          ? Colors.blue
-                          : Colors.purple,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                if (selectedQuestionStatus == "critical")
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: const Text(
-                      "Critical",
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                const Text(
-                  "Click to see who rated →",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
+            scoreBar(
+              "S1",
+              item["Score1"] ?? 0,
+              total,
+              Colors.red,
             ),
           ],
         ),
@@ -466,190 +559,76 @@ class _DetailedcourseevaluationState
   }
 
   Widget buildFilters() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        bool isSmallScreen = constraints.maxWidth < 700;
-
-        return Column(
-          children: [
-            if (isSmallScreen) ...[
-              DropdownButtonFormField<String>(
-                value: courses.contains(selectedCourse)
-                    ? selectedCourse
-                    : null,
-                decoration: InputDecoration(
-                  labelText: "SELECT COURSE",
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                items: courses.map<DropdownMenuItem<String>>((e) {
-                  return DropdownMenuItem(
-                    value: e.toString(),
-                    child: Text(
-                      e.toString(),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
-                onChanged: (v) {
-                  setState(() {
-                    selectedCourse = v!;
-                  });
-
-                  getQuestions();
-                },
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: courses.contains(selectedCourse)
+                ? selectedCourse
+                : null,
+            decoration: InputDecoration(
+              labelText: "COURSE",
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
               ),
+            ),
+            items: courses.map<DropdownMenuItem<String>>((e) {
+              return DropdownMenuItem(
+                value: e.toString(),
+                child: Text(e.toString()),
+              );
+            }).toList(),
+            onChanged: (v) {
+              setState(() {
+                selectedCourse = v!;
+              });
 
-              const SizedBox(height: 14),
+              getQuestions();
+            },
+          ),
+        ),
 
-              DropdownButtonFormField<String>(
-                value: selectedEvalType,
-                decoration: InputDecoration(
-                  labelText: "EVALUATION TYPE",
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: "both",
-                    child: Text("Both"),
-                  ),
-                  DropdownMenuItem(
-                    value: "student",
-                    child: Text("Student"),
-                  ),
-                  DropdownMenuItem(
-                    value: "peer",
-                    child: Text("Peer"),
-                  ),
-                ],
-                onChanged: (v) {
-                  setState(() {
-                    selectedEvalType = v!;
-                  });
+        const SizedBox(width: 12),
 
-                  getQuestions();
-                },
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: selectedEvalType,
+            decoration: InputDecoration(
+              labelText: "EVALUATION TYPE",
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
               ),
-            ] else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: courses.contains(selectedCourse)
-                          ? selectedCourse
-                          : null,
-                      decoration: InputDecoration(
-                        labelText: "SELECT COURSE",
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      items: courses.map<DropdownMenuItem<String>>((e) {
-                        return DropdownMenuItem(
-                          value: e.toString(),
-                          child: Text(
-                            e.toString(),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          selectedCourse = v!;
-                        });
-
-                        getQuestions();
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: selectedEvalType,
-                      decoration: InputDecoration(
-                        labelText: "EVALUATION TYPE",
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: "both",
-                          child: Text("Both"),
-                        ),
-                        DropdownMenuItem(
-                          value: "student",
-                          child: Text("Student"),
-                        ),
-                        DropdownMenuItem(
-                          value: "peer",
-                          child: Text("Peer"),
-                        ),
-                      ],
-                      onChanged: (v) {
-                        setState(() {
-                          selectedEvalType = v!;
-                        });
-
-                        getQuestions();
-                      },
-                    ),
-                  ),
-                ],
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: "both",
+                child: Text("Both"),
+              ),
+              DropdownMenuItem(
+                value: "student",
+                child: Text("Student"),
+              ),
+              DropdownMenuItem(
+                value: "peer",
+                child: Text("Peer"),
               ),
             ],
+            onChanged: (v) {
+              setState(() {
+                selectedEvalType = v!;
+              });
 
-            const SizedBox(height: 14),
-
-            DropdownButtonFormField<String>(
-              value: selectedQuestionStatus,
-              decoration: InputDecoration(
-                labelText: "QUESTION TYPE",
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: "all",
-                  child: Text("All Questions"),
-                ),
-                DropdownMenuItem(
-                  value: "critical",
-                  child: Text("Critical Questions"),
-                ),
-              ],
-              onChanged: (v) {
-                setState(() {
-                  selectedQuestionStatus = v!;
-                });
-
-                getQuestions();
-              },
-            ),
-          ],
-        );
-      },
+              getQuestions();
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -680,20 +659,22 @@ class _DetailedcourseevaluationState
 
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "Question Analysis",
+                          "Question-wise Ratings",
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 30,
+                            fontSize: 28,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         Text(
-                          "Teacher: ${widget.teacherName} • Session: ${widget.sessionId}",
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.grey),
+                          "Teacher ID: ${widget.teacherId} • Session: ${widget.sessionId}",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
@@ -704,16 +685,57 @@ class _DetailedcourseevaluationState
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                ),
                 child: Column(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius:
+                            BorderRadius.circular(24),
                       ),
-                      child: buildFilters(),
+                      child: Column(
+                        children: [
+                          buildFilters(),
+
+                          const SizedBox(height: 14),
+
+                          DropdownButtonFormField<String>(
+                            value: selectedQuestionStatus,
+                            decoration: InputDecoration(
+                              labelText: "QUESTION TYPE",
+                              filled: true,
+                              fillColor: Colors.grey.shade100,
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: "all",
+                                child: Text("All Questions"),
+                              ),
+                              DropdownMenuItem(
+                                value: "critical",
+                                child:
+                                    Text("Critical Questions"),
+                              ),
+                            ],
+                            onChanged: (v) {
+                              setState(() {
+                                selectedQuestionStatus = v!;
+                              });
+
+                              getQuestions();
+                            },
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 20),
@@ -724,13 +746,19 @@ class _DetailedcourseevaluationState
                         child: CircularProgressIndicator(),
                       ),
 
+                    if (!loading && questions.isNotEmpty)
+                      buildQuestionGraph(),
+
+                    const SizedBox(height: 20),
+
                     if (!loading && questions.isEmpty)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(30),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius:
+                              BorderRadius.circular(24),
                         ),
                         child: const Center(
                           child: Text(
@@ -745,7 +773,10 @@ class _DetailedcourseevaluationState
                       ),
 
                     ...questions.asMap().entries.map(
-                          (e) => buildQuestionCard(e.value, e.key),
+                          (e) => buildQuestionCard(
+                            e.value,
+                            e.key,
+                          ),
                         ),
                   ],
                 ),

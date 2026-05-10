@@ -238,7 +238,10 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => Classheldreport(teacherId: widget.teacherID,)),
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          Classheldreport(teacherId: widget.teacherID),
+                    ),
                   );
                 },
               ),
@@ -254,7 +257,9 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => Coursemanagmentevaluation(),
+                      builder: (_) => Coursemanagmentevaluation(
+                        teacherId: widget.teacherID,
+                      ),
                     ),
                   );
                 },
@@ -271,15 +276,14 @@ class TeacherdashboardState extends State<Teacherdashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => Evaluatesocietymentors(
-                        teacherId: widget.teacherID,
-                      ),
+                      builder: (_) =>
+                          Evaluatesocietymentors(teacherId: widget.teacherID),
                     ),
                   );
                 },
               ),
 
-             const SizedBox(height: 15),
+              const SizedBox(height: 15),
 
               buildManageButton(
                 icon: Icons.bar_chart,
@@ -301,25 +305,23 @@ class TeacherdashboardState extends State<Teacherdashboard> {
 
               const SizedBox(height: 15),
 
-              buildManageButton(
-                icon: Icons.bar_chart,
-                label: 'See CHR Report ',
-                description: 'See Your CHR Report ',
-                backgroundColor: Colors.green,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => Teacherseeperformance(
-                        teacherName: teacherName,
-                        userId: widget.teacherID,
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-
+              // buildManageButton(
+              //   icon: Icons.bar_chart,
+              //   label: 'See CHR Report ',
+              //   description: 'See Your CHR Report ',
+              //   backgroundColor: Colors.green,
+              //   onPressed: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //         builder: (_) => Teacherseeperformance(
+              //           teacherName: teacherName,
+              //           userId: widget.teacherID,
+              //         ),
+              //       ),
+              //     );
+              //   },
+              // ),
               const SizedBox(height: 15),
 
               /// LOGOUT (UNCHANGED)
@@ -344,62 +346,59 @@ class TeacherdashboardState extends State<Teacherdashboard> {
   }
 
   Widget buildManageButton({
-  required IconData icon,
-  required String label,
-  required String description,
-  required Color backgroundColor,
-  required VoidCallback onPressed,
-}) {
-  return SizedBox(
-    width: double.infinity,
-    child: ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: Colors.lightGreen.shade200, width: 1.2),
+    required IconData icon,
+    required String label,
+    required String description,
+    required Color backgroundColor,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 1,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.lightGreen.shade200, width: 1.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: backgroundColor.withOpacity(0.15),
+              child: Icon(icon, color: backgroundColor, size: 18),
+            ),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+
+            Icon(Icons.arrow_forward_ios, size: 14, color: backgroundColor),
+          ],
         ),
       ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: backgroundColor.withOpacity(0.15),
-            child: Icon(icon, color: backgroundColor, size: 18),
-          ),
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                 Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Icon(Icons.arrow_forward_ios, size: 14, color: backgroundColor),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 }

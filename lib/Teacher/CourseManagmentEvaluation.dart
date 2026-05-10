@@ -1,347 +1,563 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, deprecated_member_use
 
+import 'dart:convert';
+import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class Coursemanagmentevaluation extends StatefulWidget {
-  const Coursemanagmentevaluation({super.key});
+  final String teacherId;
+
+  const Coursemanagmentevaluation({
+    super.key,
+    required this.teacherId,
+  });
 
   @override
   State<Coursemanagmentevaluation> createState() =>
       _CoursemanagmentevaluationState();
 }
 
-class _CoursemanagmentevaluationState extends State<Coursemanagmentevaluation> {
-  String selectedSession = "Fall 2025";
-  String selectedCourse = "All Courses";
+class _CoursemanagmentevaluationState
+    extends State<Coursemanagmentevaluation> {
+  bool isLoading = true;
+  bool isSessionLoading = true;
 
-  // ================= DYNAMIC DATA LIST =================
-  List<Map<String, dynamic>> courses = [
-    {
-      "title": "Database Systems",
-      "code": "CS-301",
-      "session": "Fall 2025",
-      "paperStatus": "On Time",
-      "folderStatus": "On Time",
-      "score": 8.7,
-      "remarks":
-          "Excellent course organization and timely submissions. Course material is comprehensive and well-structured.",
-      "evaluatedBy": "Dr. Munir",
-      "date": "Nov 20, 2025",
-    },
-    {
-      "title": "Operating Systems",
-      "code": "CS-302",
-      "session": "Fall 2025",
-      "paperStatus": "Late",
-      "folderStatus": "On Time",
-      "score": 7.5,
-      "remarks": "Needs improvement in assignment submissions and material clarity.",
-      "evaluatedBy": "Dr. Ahmed",
-      "date": "Nov 21, 2025",
-    },
-    // Add more courses here easily
-  ];
+  List<dynamic> performanceList = [];
+  List<dynamic> sessions = [];
+
+  int? selectedSessionId;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSessions();
+  }
+
+  // ================= FETCH SESSIONS =================
+  Future<void> fetchSessions() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$Url/PeerEvaluator/Sessions"),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          sessions = data;
+
+          if (sessions.isNotEmpty) {
+            selectedSessionId = sessions.first['id'];
+          }
+
+          isSessionLoading = false;
+        });
+
+        if (selectedSessionId != null) {
+          fetchPerformance();
+        }
+      } else {
+        setState(() {
+          isSessionLoading = false;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isSessionLoading = false;
+        isLoading = false;
+      });
+    }
+  }
+
+  // ================= FETCH PERFORMANCE =================
+  Future<void> fetchPerformance() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          "$Url/CourseManagement/my-Courseperformance/${widget.teacherId}/$selectedSessionId",
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          performanceList = jsonDecode(response.body);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          performanceList = [];
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        performanceList = [];
+        isLoading = false;
+      });
+    }
+  }
+
+  // ================= HELPERS =================
+  Color getStatusColor(String status) {
+    if (status.toLowerCase() == "on time") {
+      return const Color(0xFF16A34A);
+    }
+    return const Color(0xFFDC2626);
+  }
+
+  Color getProgressColor(double score) {
+    if (score >= 5) {
+      return const Color(0xFF16A34A);
+    } else if (score >= 3) {
+      return Colors.orange;
+    }
+    return Colors.red;
+  }
+
+  Color getStatusBg(String status) {
+    if (status.toLowerCase() == "on time") {
+      return const Color(0xFFDDF7E5);
+    }
+    return const Color(0xFFFDE2E2);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F5),
+      backgroundColor: const Color(0xFFF4F5F7),
       body: SafeArea(
         child: Column(
           children: [
             // ================= HEADER =================
-            Padding(
-              padding: const EdgeInsets.all(16),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 18,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
+
+                  const SizedBox(width: 14),
+
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Course Management Evaluation",
+                          "Course Management",
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                            color: Color(0xFF111827),
                           ),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          "View the evaluation given by HOD for each of your courses",
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Image.asset('assets/images/logo.jpeg', height: 40),
-                ],
-              ),
-            ),
-
-            const Divider(height: 1),
-
-            // ================= FILTER SECTION =================
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      children: [
-                        Icon(Icons.filter_list, size: 18, color: Colors.grey),
-                        SizedBox(width: 4),
-                        Text(
-                          "Filters",
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          "HOD Evaluation & Session Performance",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          initialValue: selectedSession,
-                          items: ["Fall 2025", "Spring 2025"]
-                              .map(
-                                (e) => DropdownMenuItem<String>(
-                                  value: e,
-                                  child: Text(
-                                    e,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (val) {
-                            setState(() {
-                              selectedSession = val!;
-                            });
-                          },
-                          decoration: _compactInputDecoration("Session"),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          initialValue: selectedCourse,
-                          items: ["All Courses", "Database Systems"]
-                              .map(
-                                (e) => DropdownMenuItem<String>(
-                                  value: e,
-                                  child: Text(
-                                    e,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (val) {
-                            setState(() {
-                              selectedCourse = val!;
-                            });
-                          },
-                          decoration: _compactInputDecoration("Course"),
-                        ),
-                      ),
-                    ],
+                  Container(
+                    height: 42,
+                    width: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16A34A),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.assignment_turned_in_outlined,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 4),
-
-            // ================= EVALUATION CARDS =================
+            // ================= BODY =================
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: courses.length,
-                itemBuilder: (context, index) {
-                  return _evaluationCard(courses[index]);
-                },
-              ),
+              child: isSessionLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF16A34A),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ================= TITLE =================
+                          const Text(
+                            "My Performance Details",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF111827),
+                              height: 1.1,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          const Text(
+                            "View HOD remarks, KPI scores and performance details for each session.",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6B7280),
+                              height: 1.5,
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // ================= SESSION DROPDOWN =================
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.03),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                isExpanded: true,
+                                value: selectedSessionId,
+                                icon: const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                ),
+                                items: sessions.map((session) {
+                                  return DropdownMenuItem<int>(
+                                    value: session['id'],
+                                    child: Text(
+                                      session['name'],
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedSessionId = value;
+                                  });
+
+                                  fetchPerformance();
+                                },
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // ================= LOADING =================
+                          if (isLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 50),
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF16A34A),
+                                ),
+                              ),
+                            ),
+
+                          // ================= EMPTY =================
+                          if (!isLoading && performanceList.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(30),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: const Column(
+                                children: [
+                                  Icon(
+                                    Icons.inbox_outlined,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    "No performance data found",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // ================= PERFORMANCE LIST =================
+                          if (!isLoading)
+                            ListView.builder(
+                              itemCount: performanceList.length,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemBuilder: (context, index) {
+                                final item = performanceList[index];
+
+                                final double score =
+                                    (item['ObtainedScore'] ?? 0).toDouble();
+
+                                final String status =
+                                    item['Status'] ?? "";
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 18),
+                                  padding: const EdgeInsets.all(18),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(28),
+                                    border: Border.all(
+                                      color: const Color(0xFFE5E7EB),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // ================= TOP =================
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            height: 52,
+                                            width: 52,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEAF8EE),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            child: const Icon(
+                                              Icons.auto_graph_rounded,
+                                              color: Color(0xFF16A34A),
+                                              size: 26,
+                                            ),
+                                          ),
+
+                                          const SizedBox(width: 14),
+
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item['Activity'] ?? "",
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 18,
+                                                    color: Color(0xFF111827),
+                                                  ),
+                                                ),
+
+                                                const SizedBox(height: 4),
+
+                                                const Text(
+                                                  "KPI PERFORMANCE EVALUATION",
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w700,
+                                                    letterSpacing: 1.2,
+                                                    color: Color(0xFF9CA3AF),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 7,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: getStatusBg(status),
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
+                                            ),
+                                            child: Text(
+                                              status.toUpperCase(),
+                                              style: TextStyle(
+                                                color:
+                                                    getStatusColor(status),
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 22),
+
+                                      // ================= REMARKS =================
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF9FAFB),
+                                          borderRadius:
+                                              BorderRadius.circular(18),
+                                          border: Border.all(
+                                            color: const Color(0xFFE5E7EB),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: const [
+                                                Icon(
+                                                  Icons.description_outlined,
+                                                  size: 15,
+                                                  color: Color(0xFF6B7280),
+                                                ),
+                                                SizedBox(width: 6),
+                                                Text(
+                                                  "HOD REMARKS",
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 10,
+                                                    letterSpacing: 1,
+                                                    color: Color(0xFF9CA3AF),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                            const SizedBox(height: 12),
+
+                                            Text(
+                                              "\"${item['Remarks'] ?? ''}\"",
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                fontStyle: FontStyle.italic,
+                                                color: Color(0xFF374151),
+                                                height: 1.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 20),
+
+                                      // ================= SCORE =================
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            "OBTAINED SCORE",
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 1,
+                                              color: Color(0xFF9CA3AF),
+                                            ),
+                                          ),
+
+                                          Text(
+                                            "${score.toInt()} / 5",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color:
+                                                  getProgressColor(score),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 12),
+
+                                      ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                        child: LinearProgressIndicator(
+                                          value: score / 5,
+                                          minHeight: 8,
+                                          backgroundColor:
+                                              const Color(0xFFE5E7EB),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            getProgressColor(score),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ================= CARD =================
-  Widget _evaluationCard(Map<String, dynamic> course) {
-    double progress = (course['score'] as double) / 10;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Course Title
-          Row(
-            children: [
-              const Icon(Icons.menu_book, color: Colors.green),
-              const SizedBox(width: 8),
-              Text(
-                course['title'],
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 6),
-
-          Row(
-            children: [
-              _tag(course['code'], Colors.green.shade100),
-              const SizedBox(width: 6),
-              _tag(course['session'], Colors.blue.shade100),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Submission Status
-          _statusRow("Paper Submission", course['paperStatus']),
-          _statusRow("Course Folder Submission", course['folderStatus']),
-
-          const SizedBox(height: 16),
-
-          // Score
-          const Text(
-            "Course Quality Score",
-            style: TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 4),
-
-          Row(
-            children: [
-              Text(
-                "${course['score']} / 10",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          LinearProgressIndicator(
-            value: progress,
-            minHeight: 6,
-            backgroundColor: Colors.grey.shade300,
-            color: Colors.green,
-          ),
-
-          const SizedBox(height: 16),
-
-          // Remarks
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    Icon(Icons.verified, color: Colors.green, size: 18),
-                    SizedBox(width: 6),
-                    Text(
-                      "HOD Remarks",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  course['remarks'],
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Evaluated by: ${course['evaluatedBy']}",
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              Text(
-                course['date'],
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ================= HELPER WIDGETS =================
-  Widget _tag(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(text, style: const TextStyle(fontSize: 11)),
-    );
-  }
-
-  Widget _statusRow(String title, String status) {
-    Color color = status == "On Time" ? Colors.green : Colors.red;
-    IconData icon = status == "On Time" ? Icons.check_circle : Icons.error;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title),
-          Row(
-            children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 4),
-              Text(status, style: TextStyle(color: color)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _compactInputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      isDense: true, // important
-      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      filled: true,
-      fillColor: const Color(0xFFF1F4F3),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
       ),
     );
   }
