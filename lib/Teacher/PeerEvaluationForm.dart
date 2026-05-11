@@ -11,12 +11,14 @@ class Peerevaluationform extends StatefulWidget {
   final TeacherModel teacher;
   final QuestionnaireModel questionnaire;
   final int evaluatorID;
+  final String courseCode;
 
   const Peerevaluationform({
     super.key,
     required this.teacher,
     required this.questionnaire,
-    required this.evaluatorID, required String courseCode,
+    required this.evaluatorID,
+    required this.courseCode,
   });
 
   @override
@@ -49,7 +51,6 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
       return;
     }
 
-    /// ✅ FIXED: backend expects List<PeerEvaluation>
     List<Map<String, dynamic>> payload = [];
 
     for (var q in widget.questionnaire.questions) {
@@ -57,9 +58,7 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
         "evaluatorID": widget.evaluatorID,
         "evaluateeID": widget.teacher.teacherID,
         "questionID": q.questionID,
-        "courseCode": widget.teacher.courses.isNotEmpty
-            ? widget.teacher.courses.first
-            : "",
+        "courseCode": widget.courseCode,
         "score": getScore(answers[q.questionID] ?? ""),
       });
     }
@@ -73,10 +72,9 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Evaluation Submitted Successfully")),
+          const SnackBar(content: Text("Evaluation Submitted")),
         );
 
-        /// return success to refresh previous screen
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +83,7 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submission Failed: $e")),
+        SnackBar(content: Text("Failed: $e")),
       );
     }
   }
@@ -97,65 +95,49 @@ class _PeerevaluationformState extends State<Peerevaluationform> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          /// Teacher Info (UNCHANGED)
           Card(
             color: Colors.green,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
                 widget.teacher.teacherName,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ),
 
           const SizedBox(height: 20),
 
-          /// Questions (UNCHANGED UI)
           ...widget.questionnaire.questions.map((q) {
             return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      q.questionText,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Column(
-                      children: ["Excellent", "Good", "Average", "Poor"]
-                          .map(
-                            (option) => RadioListTile<String>(
-                              title: Text(option),
-                              value: option,
-                              groupValue: answers[q.questionID],
-                              onChanged: (value) {
-                                setState(() {
-                                  answers[q.questionID] = value!;
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  ListTile(title: Text(q.questionText)),
+                  Column(
+                    children: ["Excellent", "Good", "Average", "Poor"]
+                        .map((option) {
+                      return RadioListTile<String>(
+                        title: Text(option),
+                        value: option,
+                        groupValue: answers[q.questionID],
+                        onChanged: (value) {
+                          setState(() {
+                            answers[q.questionID] = value!;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
             );
           }),
 
           const SizedBox(height: 20),
 
-          /// Submit Button (UNCHANGED UI)
           ElevatedButton(
             onPressed: submitEvaluation,
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 50),
-            ),
-            child: const Text("Submit Evaluation"),
+            child: const Text("Submit"),
           ),
         ],
       ),

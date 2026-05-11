@@ -41,7 +41,7 @@ class _LoginState extends State<Login> {
       Widget nextScreen;
 
       switch (role) {
-        case 'HOD':
+        case 'hod':
           nextScreen = HodDashboard(hodId: userid);
           break;
         case 'Teacher':
@@ -53,7 +53,7 @@ class _LoginState extends State<Login> {
         case 'Director':
           nextScreen = const Directordashboard();
           break;
-        case 'DataCell':
+        case 'Datacell':
           nextScreen = const DataCellDashboard();
           break;
         default:

@@ -64,7 +64,9 @@ class TeacherdashboardState extends State<Teacherdashboard> {
       bool questionnaireActive = false;
 
       final questionnaireResponse = await http.get(
-        Uri.parse("$Url/TeacherDashboard/GetActiveQuestionnaire"),
+        Uri.parse(
+          "$Url/TeacherDashboard/GetActiveQuestionnaire?type=Peer Evaluation",
+        ),
       );
 
       if (questionnaireResponse.statusCode == 200) {

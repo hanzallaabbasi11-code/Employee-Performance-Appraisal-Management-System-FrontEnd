@@ -50,17 +50,13 @@ class _PeerevaluationState extends State<Peerevaluation> {
         final data = jsonDecode(res.body);
 
         if (data is List) {
-          teachers = data
-              .map<TeacherModel>(
-                (e) => TeacherModel.fromJson(e),
-              )
-              .toList();
+          teachers = data.map<TeacherModel>((e) {
+            return TeacherModel.fromJson(e);
+          }).toList();
         } else {
           teachers = [];
         }
       }
-
-      print(res.body);
     } catch (e) {
       teachers = [];
       print("fetchTeachers error: $e");
@@ -84,16 +80,35 @@ class _PeerevaluationState extends State<Peerevaluation> {
 
         if (mounted) {
           setState(() {
-            evaluatedTeachers = data
-                .map<String>(
-                  (e) => "${e["TeacherID"]}-${e["CourseCode"]}",
-                )
-                .toSet();
+            evaluatedTeachers = data.map<String>((e) {
+              return "${e["TeacherID"]}-${e["CourseCode"]}";
+            }).toSet();
           });
         }
       }
     } catch (e) {
       print("fetchSubmittedEvaluations error: $e");
+    }
+  }
+
+  Future<QuestionnaireModel?> fetchQuestionnaire() async {
+    try {
+      final res = await http.get(
+        Uri.parse(
+          "$Url/TeacherDashboard/GetActiveQuestionnaire?type=Peer Evaluation",
+        ),
+      );
+
+      if (res.statusCode != 200) return null;
+
+      final data = jsonDecode(res.body);
+
+      if (data["Flag"] == "0") return null;
+
+      return QuestionnaireModel.fromJson(data);
+    } catch (e) {
+      print("Questionnaire error: $e");
+      return null;
     }
   }
 
@@ -109,12 +124,9 @@ class _PeerevaluationState extends State<Peerevaluation> {
                   itemCount: teachers.length,
                   itemBuilder: (context, index) {
                     final t = teachers[index];
-
                     final courses = t.courses;
 
-                    if (courses.isEmpty) {
-                      return const SizedBox(); // safe skip
-                    }
+                    if (courses.isEmpty) return const SizedBox();
 
                     return Column(
                       children: courses.map((course) {
@@ -129,26 +141,30 @@ class _PeerevaluationState extends State<Peerevaluation> {
                               onPressed: done
                                   ? null
                                   : () async {
-                                      final q = await http.get(
-                                        Uri.parse(
-                                          "$Url/TeacherDashboard/GetActiveQuestionnaire",
-                                        ),
-                                      );
-
-                                      if (q.statusCode != 200) return;
-
                                       final questionnaire =
-                                          QuestionnaireModel.fromJson(
-                                        jsonDecode(q.body),
-                                      );
+                                          await fetchQuestionnaire();
+
+                                      if (questionnaire == null) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              "No active questionnaire",
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      }
 
                                       final result = await Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => Peerevaluationform(
+                                          builder: (_) =>
+                                              Peerevaluationform(
                                             teacher: t,
                                             questionnaire: questionnaire,
-                                            evaluatorID: widget.evaluatorID,
+                                            evaluatorID:
+                                                widget.evaluatorID,
                                             courseCode: course,
                                           ),
                                         ),
