@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:epams/DataCell/DataCellDashboard.dart';
 import 'package:epams/Director/DirectorDashboard.dart';
 import 'package:epams/HOD/HODDashboard.dart';
-import 'package:epams/Student/StudentDashboard.dart';
+import 'package:epams/Student/TeacherEvaluation/StudentDashboard.dart';
 import 'package:epams/Teacher/TeacherDashboard.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';

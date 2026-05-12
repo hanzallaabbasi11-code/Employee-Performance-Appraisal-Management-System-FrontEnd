@@ -1,7 +1,7 @@
 // ignore_for_file: file_names, deprecated_member_use
 
 import 'dart:convert';
-import 'package:epams/HOD/ChairpersonQuestionaire.dart';
+import 'package:epams/HOD/EvaluateSocietyChairperson/ChairpersonQuestionaire.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

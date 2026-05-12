@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:epams/Session.dart';
 import 'package:epams/Url.dart';
-import 'package:epams/Student/Confidential_db.dart';
+import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
 
 class Teacherseeperformance extends StatefulWidget {
   final String teacherName;
@@ -18,8 +18,7 @@ class Teacherseeperformance extends StatefulWidget {
   });
 
   @override
-  State<Teacherseeperformance> createState() =>
-      _TeacherseeperformanceState();
+  State<Teacherseeperformance> createState() => _TeacherseeperformanceState();
 }
 
 class _TeacherseeperformanceState extends State<Teacherseeperformance> {
@@ -41,9 +40,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
   // ================= SESSIONS =================
   Future<List<Session>> fetchSessions() async {
-    final response = await http.get(
-      Uri.parse('$Url/PeerEvaluator/Sessions'),
-    );
+    final response = await http.get(Uri.parse('$Url/PeerEvaluator/Sessions'));
 
     List data = json.decode(response.body);
     return data.map((e) => Session.fromJson(e)).toList();
@@ -64,7 +61,10 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
   // ================= PERFORMANCE =================
   Future<Map<String, dynamic>> fetchPerformance(
-      String userId, int sessionId, String? kpiId) async {
+    String userId,
+    int sessionId,
+    String? kpiId,
+  ) async {
     String url =
         '$Url/teacher/performance/GetTeacherPerformanceAnalytics/$userId/$sessionId';
 
@@ -96,7 +96,6 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
             // ================= SESSION =================
             FutureBuilder<List<Session>>(
               future: _sessionsFuture,
@@ -113,10 +112,7 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                       initialValue: selectedSession,
                       hint: const Text("Select Session"),
                       items: sessions.map((s) {
-                        return DropdownMenuItem(
-                          value: s,
-                          child: Text(s.name),
-                        );
+                        return DropdownMenuItem(value: s, child: Text(s.name));
                       }).toList(),
                       onChanged: (val) {
                         setState(() {
@@ -169,13 +165,13 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                         );
 
                         // ================= 🔥 CONFIDENTIAL FIX ADDED =================
-                        final teacherName =
-                            (data["TeacherName"] ?? "").toString().trim();
-                        final sessionName =
-                            (data["SessionName"] ?? "").toString();
+                        final teacherName = (data["TeacherName"] ?? "")
+                            .toString()
+                            .trim();
+                        final sessionName = (data["SessionName"] ?? "")
+                            .toString();
 
-                        double avgScore =
-                            await ConfidentialDB.getAverageScore(
+                        double avgScore = await ConfidentialDB.getAverageScore(
                           teacherName: teacherName,
                           session: sessionName,
                         );
@@ -193,17 +189,17 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                           double kpiPoints = 0;
 
                           for (var sub in kpi["SubDetails"]) {
-                            String subName =
-                                (sub["SubName"] ?? "").toString().toLowerCase();
+                            String subName = (sub["SubName"] ?? "")
+                                .toString()
+                                .toLowerCase();
 
                             double achievedSync;
 
                             if (subName.contains("confidential") &&
                                 hasLocalData) {
-                              double maxScale =
-                                  (sub["MaxScale"] ?? 4).toDouble();
-                              double subMax =
-                                  (sub["SubMax"] ?? 0).toDouble();
+                              double maxScale = (sub["MaxScale"] ?? 4)
+                                  .toDouble();
+                              double subMax = (sub["SubMax"] ?? 0).toDouble();
 
                               double percentage = avgScore / maxScale;
                               if (percentage > 1) percentage = 1;
@@ -211,12 +207,11 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
 
                               achievedSync = percentage * subMax;
                             } else {
-                              achievedSync =
-                                  (sub["SubAchieved"] ?? 0).toDouble();
+                              achievedSync = (sub["SubAchieved"] ?? 0)
+                                  .toDouble();
 
                               if (achievedSync > (sub["SubMax"] ?? 0)) {
-                                achievedSync =
-                                    (sub["SubMax"] ?? 0).toDouble();
+                                achievedSync = (sub["SubMax"] ?? 0).toDouble();
                               }
                             }
 
@@ -260,80 +255,108 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                 child: Text(
                   "${_teacherPerformance!["OverallPercentage"]}%",
                   style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
 
               const SizedBox(height: 15),
 
               SizedBox(
-                height: 200,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: (_teacherPerformance!["Breakdown"] as List)
-                      .map<Widget>((kpi) {
-                    double percent = kpi['KPIWeight'] == 0
-                        ? 0
-                        : (kpi['KPIAchieved'] / kpi['KPIWeight']) * 100;
+                height: 240,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: (_teacherPerformance!["Breakdown"] as List)
+                        .map<Widget>((kpi) {
+                          double percent = kpi['KPIWeight'] == 0
+                              ? 0
+                              : (kpi['KPIAchieved'] / kpi['KPIWeight']) * 100;
 
-                    return Column(
-                      children: [
-                        Text("${percent.toStringAsFixed(0)}%"),
-                        const SizedBox(height: 5),
-                        Container(
-                          width: 18,
-                          height: percent * 2,
-                          decoration: BoxDecoration(
-                            color: getDynamicColor(kpi['KPIName']),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        SizedBox(
-                          width: 60,
-                          child: Text(
-                            kpi['KPIName'],
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
+                          // Limit maximum bar height
+                          double barHeight = percent * 1.5;
+
+                          if (barHeight > 140) {
+                            barHeight = 140;
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: SizedBox(
+                              width: 70,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    "${percent.toStringAsFixed(0)}%",
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  Container(
+                                    width: 22,
+                                    height: barHeight,
+                                    decoration: BoxDecoration(
+                                      color: getDynamicColor(kpi['KPIName']),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 8),
+
+                                  Text(
+                                    kpi['KPIName'],
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        })
+                        .toList(),
+                  ),
                 ),
               ),
-
               const SizedBox(height: 20),
 
               Expanded(
                 child: ListView(
-                  children: (_teacherPerformance!["Breakdown"] as List)
-                      .map((kpi) {
+                  children: (_teacherPerformance!["Breakdown"] as List).map((
+                    kpi,
+                  ) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(kpi["KPIName"],
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
+                        Text(
+                          kpi["KPIName"],
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
 
                         LinearProgressIndicator(
                           value: kpi["KPIWeight"] == 0
                               ? 0
-                              : (kpi["KPIAchieved"] /
-                                  kpi["KPIWeight"]),
+                              : (kpi["KPIAchieved"] / kpi["KPIWeight"]),
                         ),
 
                         const SizedBox(height: 10),
 
                         ...kpi["SubDetails"].map<Widget>((sub) {
                           return Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(child: Text(sub["SubName"])),
                               Text(
-                                  "${sub["AchievedSync"] ?? sub["SubAchieved"]} / ${sub["SubMax"]}"),
+                                "${sub["AchievedSync"] ?? sub["SubAchieved"]} / ${sub["SubMax"]}",
+                              ),
                             ],
                           );
                         }).toList(),
@@ -343,8 +366,8 @@ class _TeacherseeperformanceState extends State<Teacherseeperformance> {
                     );
                   }).toList(),
                 ),
-              )
-            ]
+              ),
+            ],
           ],
         ),
       ),

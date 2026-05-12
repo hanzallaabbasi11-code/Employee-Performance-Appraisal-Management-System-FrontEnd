@@ -1,7 +1,7 @@
 // ignore_for_file: file_names
 
 import 'dart:convert';
-import 'package:epams/Director/DetailedPerformance.dart';
+import 'package:epams/Director/SeePerformance/DetailedPerformance.dart';
 //import 'package:epams/Director/Detailedperformance.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';

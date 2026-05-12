@@ -1,8 +1,8 @@
 // ignore_for_file: file_names
 
 import 'dart:convert';
-import 'package:epams/HOD/CMModal.dart';
-import 'package:epams/HOD/CourseManagementModel.dart';
+import 'package:epams/HOD/CourseManagement/CMModal.dart';
+import 'package:epams/HOD/CourseManagement/CourseManagementModel.dart';
 import 'package:epams/Session.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';

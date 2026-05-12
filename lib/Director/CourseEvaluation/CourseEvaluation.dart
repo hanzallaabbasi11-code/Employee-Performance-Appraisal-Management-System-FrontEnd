@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 //import 'package:epams/Director/CourseEvaluation.dart';
-import 'package:epams/Director/DetailedCourseEvaluation.dart';
+import 'package:epams/Director/CourseEvaluation/DetailedCourseEvaluation.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

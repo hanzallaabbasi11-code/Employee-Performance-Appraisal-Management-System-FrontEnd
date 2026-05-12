@@ -3,7 +3,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../Url.dart';
+import '../../Url.dart';
 
 class EvaluateModal extends StatefulWidget {
   final String teacherId;

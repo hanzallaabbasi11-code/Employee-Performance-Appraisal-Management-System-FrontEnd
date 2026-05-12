@@ -1,7 +1,7 @@
 // ignore_for_file: file_names, avoid_print, use_build_context_synchronously
 
 import 'dart:convert';
-import 'package:epams/Director/CompareResult.dart';
+import 'package:epams/Director/SeePerformance/CompareResult.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

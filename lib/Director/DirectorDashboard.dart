@@ -1,13 +1,13 @@
 // ignore_for_file: file_names
 
-import 'package:epams/Director/AddKPI.dart';
+import 'package:epams/Director/AddKpi/AddKPI.dart';
 import 'package:epams/Director/AddPeerEvaluators.dart';
 import 'package:epams/Director/ConfidentialEvaluation.dart';
-import 'package:epams/Director/CourseEvaluation.dart';
+import 'package:epams/Director/CourseEvaluation/CourseEvaluation.dart';
 import 'package:epams/Director/EmailSetting.dart';
-import 'package:epams/Director/MakeQuestioner.dart';
+import 'package:epams/Director/Questionnaires/MakeQuestioner.dart';
 import 'package:epams/Director/OverallPerformance.dart';
-import 'package:epams/Director/SeePerformance.dart';
+import 'package:epams/Director/SeePerformance/SeePerformance.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 

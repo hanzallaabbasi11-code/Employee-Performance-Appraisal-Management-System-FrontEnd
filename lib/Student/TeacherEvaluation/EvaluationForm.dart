@@ -1,141 +1,129 @@
-// ignore_for_file: file_names, use_build_context_synchronously
+// ignore_for_file: file_names, avoid_print, use_build_context_synchronously
 
 import 'dart:convert';
-//import 'package:epams/Student/Confidential_db.dart';
-import 'package:epams/Url.dart';
+import 'package:epams/Teacher/QuestionnaireModel.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:epams/Teacher/QuestionnaireModel.dart';
-import 'confidential_db.dart';
+import '../../Url.dart';
 
-class Confidentialevaluationform extends StatefulWidget {
+class Evaluationform extends StatefulWidget {
   final String courseCode;
   final String courseName;
   final String teacherName;
   final QuestionnaireModel questionnaire;
   final String studentId;
-  final int enrollmentId;
+  final int enrollmentID;
 
-  const Confidentialevaluationform({
+  const Evaluationform({
     super.key,
     required this.courseCode,
     required this.courseName,
     required this.teacherName,
     required this.questionnaire,
     required this.studentId,
-    required this.enrollmentId,
+    required this.enrollmentID,
   });
 
   @override
-  State<Confidentialevaluationform> createState() =>
-      _ConfidentialevaluationformState();
+  State<Evaluationform> createState() => _EvaluationformState();
 }
 
-class _ConfidentialevaluationformState
-    extends State<Confidentialevaluationform> {
-
+class _EvaluationformState extends State<Evaluationform> {
   Map<int, String> selectedAnswers = {};
 
-  final List<String> options = ["Excellent", "Good", "Average", "Poor"];
+  final Map<String, int> scoreMap = {
+    "Excellent": 4,
+    "Good": 3,
+    "Average": 2,
+    "Poor": 1,
+  };
+
+  final List<String> options = [
+    "Excellent",
+    "Good",
+    "Average",
+    "Poor",
+  ];
 
   bool isSubmitting = false;
 
-  int getScore(String value) {
-    switch (value) {
-      case "Excellent":
-        return 4;
-      case "Good":
-        return 3;
-      case "Average":
-        return 2;
-      case "Poor":
-        return 1;
-      default:
-        return 0;
-    }
+  /// ===========================================
+  /// Submit Student Evaluation (Separated Method)
+  /// ===========================================
+  Future<bool> submitStudentEvaluation() async {
+  final questions = widget.questionnaire.questions;
+
+  if (selectedAnswers.length != questions.length) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please answer all questions")),
+    );
+    return false;
   }
 
-  /// 🔹 UPDATED FUNCTION
-  Future<void> submitEvaluation() async {
+  setState(() => isSubmitting = true);
 
-    final questions = widget.questionnaire.questions;
+  try {
+    List<Map<String, dynamic>> evaluationList = [];
 
-    List<Map<String, dynamic>> answers = [];
-
-    for (var question in questions) {
-      answers.add({
-        "questionId": question.questionID,
-        "score": getScore(selectedAnswers[question.questionID]!)
+    for (int i = 0; i < questions.length; i++) {
+      evaluationList.add({
+        "enrollmentID": widget.enrollmentID,
+        "questionID": questions[i].questionID,
+        "score": scoreMap[selectedAnswers[i]],
+        "StudentId": widget.studentId
       });
     }
 
-    final body = {
-      "EnrollmentId": widget.enrollmentId,
-      "StudentId": widget.studentId,
-      "Answers": answers
-    };
+    print("Submitting Data:");
+    print(jsonEncode(evaluationList));
 
-    setState(() => isSubmitting = true);
+    final response = await http.post(
+      Uri.parse("$Url/Student/SubmitStudentEvaluation"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(evaluationList),
+    );
 
-    try {
-
-      // Save answers in SQLite
-      for (var question in questions) {
-
-        await ConfidentialDB.insertEvaluation(
-          session: DateTime.now().year.toString(),
-          courseCode: widget.courseCode,
-          courseName: widget.courseName,
-          teacherName: widget.teacherName,
-          question: question.questionText,
-          answer: selectedAnswers[question.questionID]!,
-        );
-
-      }
-
-      /// 🔹 Existing Backend API (Email)
-      final response = await http.post(
-        Uri.parse("$Url/Student/SubmitConfidentialEvaluation"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(body),
-      );
-
-      if (response.statusCode == 200) {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Evaluation Submitted Successfully"),
-          ),
-        );
-
-        Navigator.pop(context);
-
-      } else {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${response.body}"),
-          ),
-        );
-
-      }
-
-    } catch (e) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Exception: $e"),
-        ),
-      );
-
-    }
+    print("Status Code: ${response.statusCode}");
+    print("Response Body: ${response.body}");
 
     setState(() => isSubmitting = false);
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Evaluation Submitted Successfully")),
+      );
+      return true;
+    } else {
+      // 👇 Show actual backend message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Error ${response.statusCode}: ${response.body}",
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return false;
+    }
+  } catch (e) {
+    setState(() => isSubmitting = false);
+
+    print("Exception: $e");
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Exception: $e"),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+
+    return false;
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
-
     final questions = widget.questionnaire.questions;
 
     return Scaffold(
@@ -147,6 +135,7 @@ class _ConfidentialevaluationformState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
+              /// Back Row
               Row(
                 children: [
                   IconButton(
@@ -155,15 +144,14 @@ class _ConfidentialevaluationformState
                   ),
                   const Text(
                     "Back to Courses",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
 
               const SizedBox(height: 15),
 
+              /// Course Info Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -176,9 +164,7 @@ class _ConfidentialevaluationformState
                   children: [
 
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -207,9 +193,7 @@ class _ConfidentialevaluationformState
 
                     Text(
                       "Instructor: ${widget.teacherName}",
-                      style: const TextStyle(
-                        color: Colors.white70,
-                      ),
+                      style: const TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
@@ -219,20 +203,17 @@ class _ConfidentialevaluationformState
 
               const Text(
                 "Evaluation Questions",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 15),
 
+              /// Questions List
               ListView.builder(
                 itemCount: questions.length,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
-
                   final question = questions[index];
 
                   return Container(
@@ -241,8 +222,7 @@ class _ConfidentialevaluationformState
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.green.shade100),
+                      border: Border.all(color: Colors.green.shade100),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,9 +230,7 @@ class _ConfidentialevaluationformState
 
                         Text(
                           "${index + 1}. ${question.questionText}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
 
                         const SizedBox(height: 12),
@@ -261,20 +239,16 @@ class _ConfidentialevaluationformState
                           spacing: 10,
                           runSpacing: 10,
                           children: options.map((option) {
-
-                            bool isSelected =
-                                selectedAnswers[question.questionID] == option;
+                            bool isSelected = selectedAnswers[index] == option;
 
                             return GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  selectedAnswers[question.questionID] = option;
+                                  selectedAnswers[index] = option;
                                 });
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? Colors.green.shade50
@@ -296,10 +270,8 @@ class _ConfidentialevaluationformState
                                 ),
                               ),
                             );
-
                           }).toList(),
                         ),
-
                       ],
                     ),
                   );
@@ -308,7 +280,7 @@ class _ConfidentialevaluationformState
 
               const SizedBox(height: 20),
 
-              /// 🔹 Submit Button
+              /// Submit Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -319,29 +291,14 @@ class _ConfidentialevaluationformState
                   onPressed: isSubmitting
                       ? null
                       : () async {
+                          bool success = await submitStudentEvaluation();
 
-                          if (selectedAnswers.length != questions.length) {
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Please answer all questions"),
-                              ),
-                            );
-
-                            return;
+                          if (success) {
+                            Navigator.pop(context, true);
                           }
-
-                          await submitEvaluation();
                         },
                   child: isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           "Submit Evaluation",
                           style: TextStyle(fontSize: 16),
@@ -357,7 +314,6 @@ class _ConfidentialevaluationformState
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ),
-
             ],
           ),
         ),

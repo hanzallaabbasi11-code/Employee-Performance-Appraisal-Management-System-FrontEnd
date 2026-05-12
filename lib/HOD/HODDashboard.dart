@@ -1,14 +1,14 @@
 // ignore_for_file: file_names, deprecated_member_use
 
 import 'package:epams/HOD/AddPeerEvaluatorScreen.dart';
-import 'package:epams/HOD/CHRReport.dart';
-import 'package:epams/HOD/CourseManagementScreen.dart';
-import 'package:epams/HOD/EvaluateSocietyChairpersons.dart';
-import 'package:epams/HOD/SeePerformanceScreen.dart';
-import 'package:epams/HOD/SocietyDashboard.dart';
+import 'package:epams/HOD/CHR%20Report/CHRReport.dart';
+import 'package:epams/HOD/CourseManagement/CourseManagementScreen.dart';
+import 'package:epams/HOD/EvaluateSocietyChairperson/EvaluateSocietyChairpersons.dart';
+import 'package:epams/HOD/SeePerformance/SeePerformanceScreen.dart';
+import 'package:epams/HOD/SocietyManagement/SocietyDashboard.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
-import 'package:epams/HOD/AddKpiScreen.dart';
+import 'package:epams/HOD/AddKpi/AddKpiScreen.dart';
 
 class HodDashboard extends StatefulWidget {
   final String hodId; // ✅ logged in HOD id

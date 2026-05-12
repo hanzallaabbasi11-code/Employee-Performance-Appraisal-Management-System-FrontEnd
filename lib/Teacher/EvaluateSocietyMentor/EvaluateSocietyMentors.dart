@@ -1,7 +1,7 @@
 // ignore_for_file: file_names
 
 import 'dart:convert';
-import 'package:epams/Teacher/EvaluateMentors.dart';
+import 'package:epams/Teacher/EvaluateSocietyMentor/EvaluateMentors.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

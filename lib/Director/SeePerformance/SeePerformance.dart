@@ -3,8 +3,8 @@
 import 'dart:convert';
 //import 'package:epams/Director/DetailComparison.dart';
 //import 'package:epams/Director/CompareResult.dart';
-import 'package:epams/Director/DetailComparison.dart';
-import 'package:epams/Director/DetailedPerformance.dart';
+import 'package:epams/Director/SeePerformance/DetailComparison.dart';
+import 'package:epams/Director/SeePerformance/DetailedPerformance.dart';
 //import 'package:epams/Director/ViewPerformance.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';

@@ -1,10 +1,10 @@
 // ignore_for_file: file_names
 
 import 'dart:convert';
-import 'package:epams/HOD/AssignChairpersons.dart';
-import 'package:epams/HOD/AssignMentors.dart';
+import 'package:epams/HOD/SocietyManagement/AssignChairpersons.dart';
+import 'package:epams/HOD/SocietyManagement/AssignMentors.dart';
 import 'package:epams/HOD/HODDashboard.dart';
-import 'package:epams/HOD/ManageSocieties.dart';
+import 'package:epams/HOD/SocietyManagement/ManageSocieties.dart';
 import 'package:epams/Session.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';

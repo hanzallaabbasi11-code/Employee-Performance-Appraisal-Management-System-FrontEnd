@@ -1,14 +1,14 @@
 // ignore_for_file: file_names, avoid_print
 
 import 'dart:convert';
-import 'package:epams/Student/EvaluationForm.dart';
-import 'package:epams/Student/ConfidentialEvaluation.dart';
+import 'package:epams/Student/TeacherEvaluation/EvaluationForm.dart';
+import 'package:epams/Student/ConfidentialEvaluation/ConfidentialEvaluation.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../Teacher/QuestionnaireModel.dart' show QuestionnaireModel;
-import '../Url.dart';
+import '../../Teacher/QuestionnaireModel.dart' show QuestionnaireModel;
+import '../../Url.dart';
 
 class Studentdashboard extends StatefulWidget {
   final String studentId;
