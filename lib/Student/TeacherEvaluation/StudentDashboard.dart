@@ -364,13 +364,14 @@ class StudentCourse {
   final String courseTitle;
   final String teacherName;
   final String sessionName;
-
+final int sessionId;
   StudentCourse({
     required this.enrollmentID,
     required this.courseCode,
     required this.courseTitle,
     required this.teacherName,
     required this.sessionName,
+    required this.sessionId,
   });
 
   factory StudentCourse.fromJson(
@@ -380,7 +381,9 @@ class StudentCourse {
       courseCode: json['CourseCode'] ?? '',
       courseTitle: json['CourseTitle'] ?? '',
       teacherName: json['TeacherName'] ?? '',
-      sessionName: json['SessionName'] ?? '',
+     sessionName: json['SessionName'] ?? '',
+     sessionId: json['SessionID'] ?? 0,
+      
     );
   }
 }

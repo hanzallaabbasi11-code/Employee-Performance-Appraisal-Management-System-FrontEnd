@@ -17,24 +17,39 @@ class ConfidentialDB {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
+
       onCreate: (db, version) async {
         await db.execute('''
-        CREATE TABLE evaluations(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session TEXT,
-          courseCode TEXT,
-          courseName TEXT,
-          teacherName TEXT,
-          question TEXT,
-          answer TEXT
-        )
-        ''');
+      CREATE TABLE evaluations(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sessionId INTEGER,
+        session TEXT,
+        courseCode TEXT,
+        courseName TEXT,
+        teacherName TEXT,
+        question TEXT,
+        answer TEXT
+      )
+      ''');
+
+        print("✅ TABLE CREATED");
+      },
+
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            "ALTER TABLE evaluations ADD COLUMN sessionId INTEGER",
+          );
+
+          print("✅ TABLE UPDATED");
+        }
       },
     );
   }
 
   static Future<void> insertEvaluation({
+    required int sessionId,
     required String session,
     required String courseCode,
     required String courseName,
@@ -44,17 +59,19 @@ class ConfidentialDB {
   }) async {
     final db = await database;
 
-    await db.insert(
-      "evaluations",
-      {
-        "session": session,
-        "courseCode": courseCode,
-        "courseName": courseName,
-        "teacherName": teacherName,
-        "question": question,
-        "answer": answer,
-      },
-    );
+    final data = {
+      "sessionId": sessionId,
+      "session": session,
+      "courseCode": courseCode,
+      "courseName": courseName,
+      "teacherName": teacherName,
+      "question": question,
+      "answer": answer,
+    };
+
+    print("🗄️ SQLITE INSERT => $data");
+
+    await db.insert("evaluations", data);
   }
 
   static int getScore(String value) {
@@ -74,40 +91,73 @@ class ConfidentialDB {
 
   /// 🔹 NEW: EXACT MATCH WITH REACT (AVG BASED)
   static Future<double> getAverageScore({
-  required String teacherName,
-  required String session,
-}) async {
-  final db = await database;
+    required String teacherName,
+    required String session,
+  }) async {
+    final db = await database;
 
-  /// 🔥 Extract year from session name (Spring 2026 → 2026)
-  String extractedYear = session.replaceAll(RegExp(r'[^0-9]'), '');
+    /// 🔥 Extract year from session name (Spring 2026 → 2026)
+    String extractedYear = session.replaceAll(RegExp(r'[^0-9]'), '');
 
-  List<Map<String, dynamic>> data = [];
+    List<Map<String, dynamic>> data = [];
 
-  /// 🔥 Try exact match first
-  data = await db.query(
-    "evaluations",
-    where: "teacherName = ? AND session = ?",
-    whereArgs: [teacherName, session],
-  );
-
-  /// 🔥 If no data → fallback to year match
-  if (data.isEmpty && extractedYear.isNotEmpty) {
+    /// 🔥 Try exact match first
     data = await db.query(
       "evaluations",
       where: "teacherName = ? AND session = ?",
-      whereArgs: [teacherName, extractedYear],
+      whereArgs: [teacherName, session],
     );
+
+    /// 🔥 If no data → fallback to year match
+    if (data.isEmpty && extractedYear.isNotEmpty) {
+      data = await db.query(
+        "evaluations",
+        where: "teacherName = ? AND session = ?",
+        whereArgs: [teacherName, extractedYear],
+      );
+    }
+
+    /// 🔥 LAST fallback → only teacher match
+    if (data.isEmpty) {
+      data = await db.query(
+        "evaluations",
+        where: "teacherName = ?",
+        whereArgs: [teacherName],
+      );
+    }
+
+    if (data.isEmpty) return 0;
+
+    double total = 0;
+
+    for (var row in data) {
+      total += getScore(row['answer'].toString());
+    }
+
+    return total / data.length;
   }
 
-  /// 🔥 LAST fallback → only teacher match
-  if (data.isEmpty) {
-    data = await db.query(
-      "evaluations",
-      where: "teacherName = ?",
-      whereArgs: [teacherName],
-    );
-  }
+
+  static Future<double> getAverageScoreBySessionId({
+  required String teacherName,
+  required int sessionId,
+}) async {
+  final db = await database;
+
+  print(
+    "🔍 Searching SQLITE => Teacher: $teacherName | SessionId: $sessionId",
+  );
+
+  final data = await db.rawQuery(
+    '''
+    SELECT * FROM evaluations
+    WHERE teacherName LIKE ?
+    AND sessionId = ?
+    ''',
+    ['%$teacherName%', sessionId],
+  );
+
+  print("📊 FILTERED SQLITE DATA => $data");
 
   if (data.isEmpty) return 0;
 
@@ -120,4 +170,20 @@ class ConfidentialDB {
   return total / data.length;
 }
 
+  //to delete
+  static Future<void> clearEvaluations() async {
+    final db = await database;
+    await db.delete("evaluations");
+  }
+
+  //to print
+  static Future<void> printAllEvaluations() async {
+    final db = await database;
+    final data = await db.query("evaluations");
+
+    print("📊 ALL SQLITE DATA:");
+    for (var row in data) {
+      print(row);
+    }
+  }
 }

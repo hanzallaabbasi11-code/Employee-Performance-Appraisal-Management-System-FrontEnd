@@ -5,6 +5,7 @@ import 'dart:convert';
 //import 'package:epams/Director/CompareResult.dart';
 import 'package:epams/Director/SeePerformance/DetailComparison.dart';
 import 'package:epams/Director/SeePerformance/DetailedPerformance.dart';
+import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
 //import 'package:epams/Director/ViewPerformance.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,6 @@ class Seeperformance extends StatefulWidget {
 
 class _SeeperformanceState extends State<Seeperformance> {
   List sessions = [];
-  List<String> employeeTypes = [];
   List<String> courses = [];
   List teachers = [];
 
@@ -28,13 +28,15 @@ class _SeeperformanceState extends State<Seeperformance> {
   int selectedTab = 0;
 
   String selectedCourse = "All";
-  String selectedDepartment = "All";
+
+  // ================= NEW STATIC TYPES =================
+  List<String> employeeTypes = ["CS", "Non CS"];
+  String selectedDepartment = "CS";
 
   @override
   void initState() {
     super.initState();
     getSessions();
-    getEmployeeTypes();
   }
 
   // ================= SESSIONS =================
@@ -49,24 +51,6 @@ class _SeeperformanceState extends State<Seeperformance> {
         selectedSession = sessions.first['id'];
         getCourses(selectedSession!);
         getPerformance();
-      }
-    });
-  }
-
-  // ================= DEPARTMENTS =================
-  Future getEmployeeTypes() async {
-    var res = await http.get(Uri.parse("$Url/Performance/GetEmployeeTypes"));
-    var data = jsonDecode(res.body);
-
-    setState(() {
-      employeeTypes = ["All"];
-
-      for (var d in data) {
-        if (d is String) {
-          employeeTypes.add(d);
-        } else {
-          employeeTypes.add(d['type']?.toString() ?? '');
-        }
       }
     });
   }
@@ -98,11 +82,20 @@ class _SeeperformanceState extends State<Seeperformance> {
   Future getPerformance() async {
     if (selectedSession == null) return;
 
+    // ================= FILTER MAPPING =================
+    String backendDepartment = "All";
+
+    if (selectedDepartment == "CS") {
+      backendDepartment = "CS";
+    } else if (selectedDepartment == "Non CS") {
+      backendDepartment = "Non CS";
+    }
+
     var res = await http.get(
       Uri.parse(
         "$Url/performance/GetTeachersPerformanceList"
         "?sessionId=$selectedSession"
-        "&department=$selectedDepartment"
+        "&department=$backendDepartment"
         "&courseCode=$selectedCourse",
       ),
     );
@@ -130,7 +123,13 @@ class _SeeperformanceState extends State<Seeperformance> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        SizedBox(width: 90, child: Text(label, style: TextStyle(fontSize: 12))),
+        SizedBox(
+          width: 90,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12),
+          ),
+        ),
         Expanded(
           child: Container(
             height: 6,
@@ -151,7 +150,10 @@ class _SeeperformanceState extends State<Seeperformance> {
             ),
           ),
         ),
-        Text(value.toStringAsFixed(1), style: TextStyle(fontSize: 12)),
+        Text(
+          value.toStringAsFixed(1),
+          style: TextStyle(fontSize: 12),
+        ),
       ],
     );
   }
@@ -242,37 +244,142 @@ class _SeeperformanceState extends State<Seeperformance> {
 
   // ================= CARD =================
   Widget teacherCard(t) {
-    double percent = (t['Percentage'] ?? 0).toDouble();
+  double student =
+      (t['StudentAverage'] ?? 0).toDouble();
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 14),
-      padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+  double peer =
+      (t['PeerAverage'] ?? 0).toDouble();
+
+  double chr =
+      (t['ChrAverage'] ?? 0).toDouble();
+
+  return FutureBuilder<double>(
+    future: ConfidentialDB.getAverageScoreBySessionId(
+      teacherName: t['Name']?.toString() ?? '',
+      sessionId: selectedSession ?? 0,
+    ),
+    builder: (context, snapshot) {
+
+      double confidential =
+          (snapshot.data ?? 0) * 2.5;
+
+      double percent =
+          ((student + peer + chr + confidential) / 40) *
+              100;
+
+      percent = percent.clamp(0, 100);
+
+      return Container(
+        margin: EdgeInsets.only(bottom: 14),
+        padding: EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    t['Name']?.toString() ?? '',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                SizedBox(width: 10),
+
+                Text(
+                  "${percent.toStringAsFixed(0)}%",
+                ),
+              ],
+            ),
+
+            Text(
+              t['CourseCode']?.toString() ?? '',
+            ),
+
+            SizedBox(height: 8),
+
+            LinearProgressIndicator(
+              value: percent / 100,
+            ),
+
+            SizedBox(height: 10),
+
+            _buildMiniBar(
+              "Student",
+              student,
+              Colors.green,
+            ),
+
+            _buildMiniBar(
+              "Peer",
+              peer,
+              Colors.orange,
+            ),
+
+            _buildMiniBar(
+              "CHR",
+              chr,
+              Colors.purple,
+            ),
+
+            // 🔥 NEW CONFIDENTIAL KPI
+            _buildMiniBar(
+              "Confidential",
+              confidential,
+              Colors.blue,
+            ),
+
+            SizedBox(height: 10),
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => Detailedperformance(
+                      teacherId: t['TeacherID'],
+                      courseCode: t['CourseCode'],
+                      sessionId: selectedSession!,
+                    ),
+                  ),
+                );
+              },
+              child: Text("View Performance"),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+  // ================= UI =================
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Employee Performance"),
       ),
-      child: Column(
+      body: ListView(
+        padding: EdgeInsets.all(12),
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(t['TeacherName']?.toString() ?? '',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Text("${percent.toStringAsFixed(0)}%"),
-            ],
-          ),
-
-          Text(t['CourseCode']?.toString() ?? ''),
-
-          SizedBox(height: 8),
-
-          LinearProgressIndicator(value: percent / 100),
+          sessionDropdown(),
 
           SizedBox(height: 10),
 
-          _buildMiniBar("Student", (t['StudentAverage'] ?? 0).toDouble(), Colors.green),
-          _buildMiniBar("Peer", (t['PeerAverage'] ?? 0).toDouble(), Colors.orange),
-          _buildMiniBar("CHR", (t['ChrAverage'] ?? 0).toDouble(), Colors.purple),
+          departmentDropdown(),
+
+          SizedBox(height: 10),
+
+          courseFilter(),
 
           SizedBox(height: 10),
 
@@ -281,45 +388,15 @@ class _SeeperformanceState extends State<Seeperformance> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => Detailedperformance(
-                    teacherId: t['TeacherID'],
-                    courseCode: t['CourseCode'],
-                    sessionId: selectedSession!,
-                  ),
+                  builder: (context) => Detailcomparison(),
                 ),
               );
             },
-            child: Text("View Performance"),
+            child: Text('Detailed'),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ================= UI =================
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Employee Performance")),
-      body: ListView(
-        padding: EdgeInsets.all(12),
-        children: [
-          sessionDropdown(),
-          SizedBox(height: 10),
-
-          departmentDropdown(),
-          SizedBox(height: 10),
-
-          courseFilter(),
-          SizedBox(height: 10),
-
-          ElevatedButton(onPressed:()
-          
-          {
-             Navigator.push(context, MaterialPageRoute(builder: (context)=> Detailcomparison()));
-          } , child: Text('Detailed')),
 
           performanceChart(),
+
           SizedBox(height: 10),
 
           ...teachers.map((t) => teacherCard(t)),

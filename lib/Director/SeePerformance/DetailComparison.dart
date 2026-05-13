@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:epams/Director/SeePerformance/CompareResult.dart';
+import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -41,7 +42,9 @@ class _DetailcomparisonState extends State<Detailcomparison> {
   // ---------------- API CALLS ----------------
 
   Future getCourses() async {
-    var res = await http.get(Uri.parse("$Url/Performance/GetAllCourses"));
+    var res = await http.get(
+      Uri.parse("$Url/Performance/GetAllCourses"),
+    );
 
     setState(() {
       courses = jsonDecode(res.body);
@@ -50,7 +53,9 @@ class _DetailcomparisonState extends State<Detailcomparison> {
   }
 
   Future getSessions() async {
-    var res = await http.get(Uri.parse("$Url/Performance/GetSessions"));
+    var res = await http.get(
+      Uri.parse("$Url/Performance/GetSessions"),
+    );
 
     setState(() {
       sessions = jsonDecode(res.body);
@@ -62,7 +67,9 @@ class _DetailcomparisonState extends State<Detailcomparison> {
     teacherB = null;
 
     var res = await http.get(
-      Uri.parse("$Url/Performance/GetTeachersByCourse?courseCode=$course"),
+      Uri.parse(
+        "$Url/Performance/GetTeachersByCourse?courseCode=$course",
+      ),
     );
 
     setState(() {
@@ -71,26 +78,103 @@ class _DetailcomparisonState extends State<Detailcomparison> {
   }
 
   Future getAllTeachers() async {
-    var res = await http.get(Uri.parse("$Url/Performance/GetAllTeachers"));
+    var res = await http.get(
+      Uri.parse("$Url/Performance/GetAllTeachers"),
+    );
 
     setState(() {
       teachers = jsonDecode(res.body);
     });
   }
 
+  // ---------------- CONFIDENTIAL ----------------
+
+  Future<double> getConfidentialOutOfTen(
+    String teacherName,
+    String session,
+  ) async {
+    double avg = await ConfidentialDB.getAverageScore(
+      teacherName: teacherName,
+      session: session,
+    );
+
+    return avg * 2.5;
+  }
+
+  // ---------------- FINAL PERCENT ----------------
+
+ Future<void> calculateOverallPercentages() async {
+  for (var item in result) {
+    double peer =
+        (item["PeerAverageOutOfTen"] ?? 0).toDouble();
+
+    double student =
+        (item["StudentAverageOutOfTen"] ?? 0).toDouble();
+
+    String teacherName =
+        item["Name"]?.toString() ?? "";
+
+    String sessionName = "";
+
+    if (item["SessionName"] != null) {
+      sessionName = item["SessionName"].toString();
+    }
+
+    double confidential = 0;
+
+    // 🔥 SESSION MODE
+    if (mode == "session") {
+
+      confidential =
+          await ConfidentialDB.getAverageScoreBySessionId(
+        teacherName: teacherName,
+        sessionId:
+    result.indexOf(item) == 0
+        ? (session1 ?? 0)
+        : (session2 ?? 0),
+      );
+
+    } else {
+
+      // 🔥 COURSE MODE
+      confidential = await ConfidentialDB.getAverageScore(
+        teacherName: teacherName,
+        session: sessionName,
+      );
+    }
+
+    // convert to /10
+    confidential = confidential * 2.5;
+
+    double finalPercent =
+        ((peer + student + confidential) / 30) * 100;
+
+    item["ConfidentialOutOfTen"] = confidential;
+
+    item["FinalCalculatedPercentage"] =
+        finalPercent.clamp(0, 100);
+
+    print(
+      "📊 $teacherName | Session: ${item["SessionID"]} | Confidential: $confidential",
+    );
+  }
+}
   // ---------------- COMPARE API ----------------
 
   Future compareTeachers() async {
-
     if (mode == "course") {
-      if (selectedCourse == null || teacherA == null || teacherB == null) {
+      if (selectedCourse == null ||
+          teacherA == null ||
+          teacherB == null) {
         showMsg("Please select course and both teachers");
         return;
       }
     }
 
     if (mode == "session") {
-      if (teacherA == null || session1 == null || session2 == null) {
+      if (teacherA == null ||
+          session1 == null ||
+          session2 == null) {
         showMsg("Please select teacher and sessions");
         return;
       }
@@ -115,33 +199,65 @@ class _DetailcomparisonState extends State<Detailcomparison> {
       body: jsonEncode(body),
     );
 
-    print(res.body); 
+    print(res.body);
 
     if (res.statusCode == 200) {
-
       result = jsonDecode(res.body);
+
+      if (result.isEmpty) {
+        setState(() {
+          loading = false;
+        });
+
+        showMsg("No comparison data found");
+        return;
+      }
+
+      // ---------------- NEW CALCULATION ----------------
+
+      await calculateOverallPercentages();
 
       setState(() {
         loading = false;
       });
 
-      if (result.isEmpty) {
-        showMsg("No comparison data found");
-        return;
-      }
+      String sessionName1 = "";
+String sessionName2 = "";
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Compareresult(
-            result: result,
-            mode: mode,
-            course: selectedCourse,
-            session1: session1,
-            session2: session2,
-          ),
-        ),
-      );
+if (session1 != null) {
+  var s1 = sessions.firstWhere(
+    (e) => e["id"] == session1,
+    orElse: () => {},
+  );
+
+  sessionName1 = s1["name"]?.toString() ?? "";
+}
+
+if (session2 != null) {
+  var s2 = sessions.firstWhere(
+    (e) => e["id"] == session2,
+    orElse: () => {},
+  );
+
+  sessionName2 = s2["name"]?.toString() ?? "";
+}
+
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => Compareresult(
+      result: result,
+      mode: mode,
+      course: selectedCourse,
+      session1: session1,
+      session2: session2,
+
+      // NEW
+      sessionName1: sessionName1,
+      sessionName2: sessionName2,
+    ),
+  ),
+);
     } else {
       setState(() {
         loading = false;
@@ -152,13 +268,16 @@ class _DetailcomparisonState extends State<Detailcomparison> {
   }
 
   void showMsg(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+      ),
+    );
   }
 
   // ---------------- MODE SWITCH ----------------
 
   void changeMode(String newMode) async {
-
     setState(() {
       mode = newMode;
 
@@ -183,7 +302,6 @@ class _DetailcomparisonState extends State<Detailcomparison> {
   // ---------------- CHART ----------------
 
   Widget buildChart() {
-
     if (result.isEmpty) return const SizedBox();
 
     return SizedBox(
@@ -194,8 +312,10 @@ class _DetailcomparisonState extends State<Detailcomparison> {
           ColumnSeries<dynamic, String>(
             dataSource: result,
             xValueMapper: (data, _) => data["Name"],
-            yValueMapper: (data, _) => data["OverallAverageOutOfHundred"],
-            dataLabelSettings: const DataLabelSettings(isVisible: true),
+            yValueMapper: (data, _) =>
+                data["FinalCalculatedPercentage"] ?? 0,
+            dataLabelSettings:
+                const DataLabelSettings(isVisible: true),
           ),
         ],
       ),
@@ -206,22 +326,15 @@ class _DetailcomparisonState extends State<Detailcomparison> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
         title: const Text("Detail Comparison"),
         backgroundColor: Colors.green,
       ),
-
       body: Padding(
-
         padding: const EdgeInsets.all(16),
-
         child: ListView(
-
           children: [
-
             // -------- MODE SWITCH --------
 
             Container(
@@ -229,20 +342,21 @@ class _DetailcomparisonState extends State<Detailcomparison> {
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(30),
               ),
-
               child: Row(
                 children: [
-
                   Expanded(
                     child: GestureDetector(
                       onTap: () => changeMode("course"),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: mode == "course"
                               ? Colors.green
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius:
+                              BorderRadius.circular(30),
                         ),
                         child: Center(
                           child: Text(
@@ -262,12 +376,15 @@ class _DetailcomparisonState extends State<Detailcomparison> {
                     child: GestureDetector(
                       onTap: () => changeMode("session"),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: mode == "session"
                               ? Colors.green
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius:
+                              BorderRadius.circular(30),
                         ),
                         child: Center(
                           child: Text(
@@ -291,15 +408,18 @@ class _DetailcomparisonState extends State<Detailcomparison> {
             // -------- COURSE MODE --------
 
             if (mode == "course") ...[
-
               DropdownButtonFormField(
                 initialValue: selectedCourse,
-                decoration: const InputDecoration(labelText: "Select Course"),
+                decoration: const InputDecoration(
+                  labelText: "Select Course",
+                ),
                 items: courses.map((c) {
-                  return DropdownMenuItem(value: c, child: Text(c));
+                  return DropdownMenuItem(
+                    value: c,
+                    child: Text(c),
+                  );
                 }).toList(),
                 onChanged: (v) {
-
                   setState(() {
                     selectedCourse = v.toString();
                   });
@@ -312,7 +432,9 @@ class _DetailcomparisonState extends State<Detailcomparison> {
 
               DropdownButtonFormField(
                 initialValue: teacherA,
-                decoration: const InputDecoration(labelText: "Teacher A"),
+                decoration: const InputDecoration(
+                  labelText: "Teacher A",
+                ),
                 items: teachers.map((t) {
                   return DropdownMenuItem(
                     value: t["id"],
@@ -330,7 +452,9 @@ class _DetailcomparisonState extends State<Detailcomparison> {
 
               DropdownButtonFormField(
                 initialValue: teacherB,
-                decoration: const InputDecoration(labelText: "Teacher B"),
+                decoration: const InputDecoration(
+                  labelText: "Teacher B",
+                ),
                 items: teachers.map((t) {
                   return DropdownMenuItem(
                     value: t["id"],
@@ -348,10 +472,11 @@ class _DetailcomparisonState extends State<Detailcomparison> {
             // -------- SESSION MODE --------
 
             if (mode == "session") ...[
-
               DropdownButtonFormField(
                 initialValue: teacherA,
-                decoration: const InputDecoration(labelText: "Select Teacher"),
+                decoration: const InputDecoration(
+                  labelText: "Select Teacher",
+                ),
                 items: teachers.map((t) {
                   return DropdownMenuItem(
                     value: t["id"],
@@ -369,7 +494,9 @@ class _DetailcomparisonState extends State<Detailcomparison> {
 
               DropdownButtonFormField(
                 initialValue: session1,
-                decoration: const InputDecoration(labelText: "Session 1"),
+                decoration: const InputDecoration(
+                  labelText: "Session 1",
+                ),
                 items: sessions.map((s) {
                   return DropdownMenuItem(
                     value: s["id"],
@@ -387,7 +514,9 @@ class _DetailcomparisonState extends State<Detailcomparison> {
 
               DropdownButtonFormField(
                 initialValue: session2,
-                decoration: const InputDecoration(labelText: "Session 2"),
+                decoration: const InputDecoration(
+                  labelText: "Session 2",
+                ),
                 items: sessions.map((s) {
                   return DropdownMenuItem(
                     value: s["id"],
@@ -409,13 +538,15 @@ class _DetailcomparisonState extends State<Detailcomparison> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                ),
               ),
-
               onPressed: loading ? null : compareTeachers,
-
               child: loading
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? const CircularProgressIndicator(
+                      color: Colors.white,
+                    )
                   : const Text("Compare"),
             ),
 

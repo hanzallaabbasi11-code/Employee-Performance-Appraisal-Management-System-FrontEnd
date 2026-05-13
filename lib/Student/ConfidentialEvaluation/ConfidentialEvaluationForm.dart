@@ -2,11 +2,12 @@
 
 import 'dart:convert';
 //import 'package:epams/Student/Confidential_db.dart';
+import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:epams/Teacher/QuestionnaireModel.dart';
-import '../confidential_db.dart';
+//import '../confidential_db.dart';
 
 class Confidentialevaluationform extends StatefulWidget {
   final String courseCode;
@@ -15,6 +16,7 @@ class Confidentialevaluationform extends StatefulWidget {
   final QuestionnaireModel questionnaire;
   final String studentId;
   final int enrollmentId;
+  final int sessionId;
 
   const Confidentialevaluationform({
     super.key,
@@ -24,6 +26,7 @@ class Confidentialevaluationform extends StatefulWidget {
     required this.questionnaire,
     required this.studentId,
     required this.enrollmentId,
+    required this.sessionId,
   });
 
   @override
@@ -33,7 +36,6 @@ class Confidentialevaluationform extends StatefulWidget {
 
 class _ConfidentialevaluationformState
     extends State<Confidentialevaluationform> {
-
   Map<int, String> selectedAnswers = {};
 
   final List<String> options = ["Excellent", "Good", "Average", "Poor"];
@@ -57,7 +59,6 @@ class _ConfidentialevaluationformState
 
   /// 🔹 UPDATED FUNCTION
   Future<void> submitEvaluation() async {
-
     final questions = widget.questionnaire.questions;
 
     List<Map<String, dynamic>> answers = [];
@@ -65,32 +66,30 @@ class _ConfidentialevaluationformState
     for (var question in questions) {
       answers.add({
         "questionId": question.questionID,
-        "score": getScore(selectedAnswers[question.questionID]!)
+        "score": getScore(selectedAnswers[question.questionID]!),
       });
     }
 
     final body = {
       "EnrollmentId": widget.enrollmentId,
       "StudentId": widget.studentId,
-      "Answers": answers
+      "Answers": answers,
     };
 
     setState(() => isSubmitting = true);
 
     try {
-
       // Save answers in SQLite
       for (var question in questions) {
-
         await ConfidentialDB.insertEvaluation(
-          session: DateTime.now().year.toString(),
+          sessionId: widget.sessionId,
+          session: widget.sessionId.toString(),
           courseCode: widget.courseCode,
           courseName: widget.courseName,
           teacherName: widget.teacherName,
           question: question.questionText,
           answer: selectedAnswers[question.questionID]!,
         );
-
       }
 
       /// 🔹 Existing Backend API (Email)
@@ -101,33 +100,20 @@ class _ConfidentialevaluationformState
       );
 
       if (response.statusCode == 200) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Evaluation Submitted Successfully"),
-          ),
+          const SnackBar(content: Text("Evaluation Submitted Successfully")),
         );
 
         Navigator.pop(context);
-
       } else {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${response.body}"),
-          ),
-        );
-
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: ${response.body}")));
       }
-
     } catch (e) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Exception: $e"),
-        ),
-      );
-
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Exception: $e")));
     }
 
     setState(() => isSubmitting = false);
@@ -135,7 +121,6 @@ class _ConfidentialevaluationformState
 
   @override
   Widget build(BuildContext context) {
-
     final questions = widget.questionnaire.questions;
 
     return Scaffold(
@@ -146,7 +131,6 @@ class _ConfidentialevaluationformState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               Row(
                 children: [
                   IconButton(
@@ -155,9 +139,7 @@ class _ConfidentialevaluationformState
                   ),
                   const Text(
                     "Back to Courses",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -174,11 +156,11 @@ class _ConfidentialevaluationformState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -207,9 +189,7 @@ class _ConfidentialevaluationformState
 
                     Text(
                       "Instructor: ${widget.teacherName}",
-                      style: const TextStyle(
-                        color: Colors.white70,
-                      ),
+                      style: const TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
@@ -219,10 +199,7 @@ class _ConfidentialevaluationformState
 
               const Text(
                 "Evaluation Questions",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 15),
@@ -232,7 +209,6 @@ class _ConfidentialevaluationformState
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
-
                   final question = questions[index];
 
                   return Container(
@@ -241,18 +217,14 @@ class _ConfidentialevaluationformState
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.green.shade100),
+                      border: Border.all(color: Colors.green.shade100),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         Text(
                           "${index + 1}. ${question.questionText}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
 
                         const SizedBox(height: 12),
@@ -261,7 +233,6 @@ class _ConfidentialevaluationformState
                           spacing: 10,
                           runSpacing: 10,
                           children: options.map((option) {
-
                             bool isSelected =
                                 selectedAnswers[question.questionID] == option;
 
@@ -273,8 +244,9 @@ class _ConfidentialevaluationformState
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8),
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? Colors.green.shade50
@@ -296,10 +268,8 @@ class _ConfidentialevaluationformState
                                 ),
                               ),
                             );
-
                           }).toList(),
                         ),
-
                       ],
                     ),
                   );
@@ -319,9 +289,7 @@ class _ConfidentialevaluationformState
                   onPressed: isSubmitting
                       ? null
                       : () async {
-
                           if (selectedAnswers.length != questions.length) {
-
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Please answer all questions"),
@@ -351,13 +319,27 @@ class _ConfidentialevaluationformState
 
               const SizedBox(height: 10),
 
+              // ElevatedButton(
+              //   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              //   onPressed: () async {
+                 
+              //     await ConfidentialDB.clearEvaluations();
+
+              //     ScaffoldMessenger.of(context).showSnackBar(
+              //       const SnackBar(content: Text("Local evaluations cleared")),
+              //     );
+              //   },
+              //   child: const Text("Clear Local DB"),
+              // ),
+
+              // const SizedBox(height: 10),
+
               const Center(
                 child: Text(
                   "Your responses will remain confidential.",
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ),
-
             ],
           ),
         ),

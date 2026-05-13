@@ -11,7 +11,8 @@ import '../../Teacher/QuestionnaireModel.dart' show QuestionnaireModel;
 import '../../Url.dart';
 
 class Confidentialevaluation extends StatefulWidget {
-  final String studentId; // Pass logged-in student ID
+  final String studentId;
+  // Pass logged-in student ID
 
   const Confidentialevaluation({super.key, required this.studentId});
 
@@ -134,7 +135,8 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                         MaterialPageRoute(
                           builder: (context) => Confidentialevaluationform(
                             studentId: widget.studentId,
-                            enrollmentId: course.enrollmentID, // ✅ ADD THIS
+                            enrollmentId: course.enrollmentID,
+                            sessionId: course.sessionId,
                             courseCode: course.courseCode,
                             courseName: course.courseTitle,
                             teacherName: course.teacherName,
@@ -244,6 +246,7 @@ class StudentCourse {
   final String courseTitle;
   final String teacherName;
   final String sessionName;
+  final int sessionId;
 
   StudentCourse({
     required this.enrollmentID,
@@ -251,6 +254,7 @@ class StudentCourse {
     required this.courseTitle,
     required this.teacherName,
     required this.sessionName,
+    required this.sessionId,
   });
 
   factory StudentCourse.fromJson(Map<String, dynamic> json) {
@@ -260,6 +264,7 @@ class StudentCourse {
       courseTitle: json['CourseTitle'] ?? '',
       teacherName: json['TeacherName'] ?? '',
       sessionName: json['SessionName'] ?? '',
+      sessionId: json['SessionID'] ?? 0,
     );
   }
 }
