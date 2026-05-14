@@ -18,8 +18,10 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
   List evaluations = [];
   bool loading = false;
 
-  // ✅ NEW FILTER VARIABLE
   String selectedFilter = "all";
+
+  // ================= NEW SEARCH CONTROLLER =================
+  TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
@@ -49,7 +51,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "mail": selectedEmail,
-        "filter": selectedFilter, // ✅ ADDED
+        "filter": selectedFilter,
       }),
     );
 
@@ -66,9 +68,9 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
     });
   }
 
-  Map<String, List> groupData() {
+  Map<String, List> groupData(List filteredList) {
     Map<String, List> grouped = {};
-    for (var e in evaluations) {
+    for (var e in filteredList) {
       String key = "${e['subjectCode']}_${e['teacherName']}";
       if (!grouped.containsKey(key)) {
         grouped[key] = [];
@@ -87,9 +89,27 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
     return total;
   }
 
+  // ================= NEW FILTER FUNCTION =================
+  List getFilteredEvaluations() {
+    String query = searchController.text.toLowerCase();
+
+    if (query.isEmpty) return evaluations;
+
+    return evaluations.where((e) {
+      final student = (e["studentName"] ?? "").toString().toLowerCase();
+      final teacher = (e["teacherName"] ?? "").toString().toLowerCase();
+      final course = (e["subjectCode"] ?? "").toString().toLowerCase();
+
+      return student.contains(query) ||
+          teacher.contains(query) ||
+          course.contains(query);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final grouped = groupData();
+    final filteredList = getFilteredEvaluations();
+    final grouped = groupData(filteredList);
 
     return Scaffold(
       appBar: AppBar(
@@ -100,7 +120,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              initialValue: selectedEmail,
+              value: selectedEmail,
               hint: const Text("Select Email"),
               isExpanded: true,
               items: emails.map<DropdownMenuItem<String>>((e) {
@@ -118,9 +138,8 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
 
             const SizedBox(height: 10),
 
-            // ✅ NEW FILTER DROPDOWN (NO DESIGN CHANGE)
             DropdownButtonFormField<String>(
-              initialValue: selectedFilter,
+              value: selectedFilter,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12),
@@ -146,6 +165,21 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                 minimumSize: const Size(double.infinity, 45),
               ),
               child: const Text("Load Evaluations"),
+            ),
+
+            // ================= NEW SEARCH BAR (ADDED HERE ONLY) =================
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: searchController,
+              onChanged: (val) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: "Search student, teacher or course...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
 
             const SizedBox(height: 10),
@@ -175,7 +209,8 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                               Text(
                                 first["subjectCode"],
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16),
                               ),
                               Text(
                                 "Total: $totalScore ⭐",
@@ -202,7 +237,6 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 4.0),
                               child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Icon(Icons.arrow_right, size: 18),
                                   Expanded(
