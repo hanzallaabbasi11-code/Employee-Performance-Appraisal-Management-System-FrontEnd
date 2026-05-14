@@ -36,6 +36,7 @@ class _CoursemanagmentevaluationState
   }
 
   // ================= FETCH SESSIONS =================
+
   Future<void> fetchSessions() async {
     try {
       final response = await http.get(
@@ -73,6 +74,7 @@ class _CoursemanagmentevaluationState
   }
 
   // ================= FETCH PERFORMANCE =================
+
   Future<void> fetchPerformance() async {
     setState(() {
       isLoading = true;
@@ -109,16 +111,12 @@ class _CoursemanagmentevaluationState
     }
   }
 
+  // ================= COLORS =================
+
   Color getStatusColor(String status) {
     return status.toLowerCase() == "on time"
         ? const Color(0xFF16A34A)
         : const Color(0xFFDC2626);
-  }
-
-  Color getProgressColor(double score) {
-    if (score >= 5) return const Color(0xFF16A34A);
-    if (score >= 3) return Colors.orange;
-    return Colors.red;
   }
 
   Color getStatusBg(String status) {
@@ -127,16 +125,34 @@ class _CoursemanagmentevaluationState
         : const Color(0xFFFDE2E2);
   }
 
+  Color getScoreColor(double score) {
+    if (score >= 5) return const Color(0xFF16A34A);
+    if (score >= 3) return Colors.orange;
+    return Colors.red;
+  }
+
+  // ================= FILTER COURSE PERFORMANCE =================
+
+  List<dynamic> getCoursePerformance(String courseCode) {
+    return performanceList
+        .where((item) => item['CourseCode'] == courseCode)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F5F7),
+
       body: SafeArea(
         child: Column(
           children: [
-            // ================= HEADER (UNCHANGED) =================
+            // ================= HEADER =================
+
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -146,20 +162,29 @@ class _CoursemanagmentevaluationState
                   ),
                 ],
               ),
+
               child: Row(
                 children: [
                   InkWell(
                     onTap: () => Navigator.pop(context),
+
                     child: Container(
                       padding: const EdgeInsets.all(8),
+
                       decoration: BoxDecoration(
                         color: const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new, size: 18),
+
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 18,
+                      ),
                     ),
                   ),
+
                   const SizedBox(width: 14),
+
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,8 +192,11 @@ class _CoursemanagmentevaluationState
                         Text(
                           "Course Management",
                           style: TextStyle(
-                              fontWeight: FontWeight.w800, fontSize: 18),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
                         ),
+
                         Text(
                           "HOD Evaluation & Session Performance",
                           style: TextStyle(fontSize: 12),
@@ -181,11 +209,15 @@ class _CoursemanagmentevaluationState
             ),
 
             // ================= BODY =================
+
             Expanded(
               child: isSessionLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
                   : SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
+
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -199,28 +231,36 @@ class _CoursemanagmentevaluationState
 
                           const SizedBox(height: 20),
 
-                          // ================= SESSION DROPDOWN (UNCHANGED) =================
+                          // ================= SESSION DROPDOWN =================
+
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 4),
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(18),
                             ),
+
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<int>(
                                 isExpanded: true,
                                 value: selectedSessionId,
+
                                 items: sessions.map((session) {
                                   return DropdownMenuItem<int>(
                                     value: session['id'],
                                     child: Text(session['name']),
                                   );
                                 }).toList(),
+
                                 onChanged: (value) {
                                   setState(() {
                                     selectedSessionId = value;
                                   });
+
                                   fetchPerformance();
                                 },
                               ),
@@ -229,92 +269,324 @@ class _CoursemanagmentevaluationState
 
                           const SizedBox(height: 20),
 
+                          // ================= LOADING =================
+
                           if (isLoading)
-                            const Center(child: CircularProgressIndicator()),
+                            const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+
+                          // ================= EMPTY =================
 
                           if (!isLoading && coursesList.isEmpty)
                             const Center(
-                              child: Text("No courses found"),
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 40),
+                                child: Text("No courses found"),
+                              ),
                             ),
 
-                          // ================= COURSES =================
+                          // ================= COURSE CARDS =================
+
                           if (!isLoading)
                             ListView.builder(
                               itemCount: coursesList.length,
                               shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
+                              physics:
+                                  const NeverScrollableScrollPhysics(),
+
                               itemBuilder: (context, index) {
                                 final course = coursesList[index];
 
+                                final courseCode =
+                                    course['CourseCode'] ?? "";
+
+                                final coursePerformance =
+                                    getCoursePerformance(courseCode);
+
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
+                                  margin:
+                                      const EdgeInsets.only(bottom: 18),
+
                                   padding: const EdgeInsets.all(16),
+
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius:
+                                        BorderRadius.circular(20),
                                   ),
+
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
+
                                     children: [
-                                      Text(
-                                        course['CourseName'] ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      Text(course['CourseCode'] ?? ''),
+                                      // ================= COURSE HEADER =================
 
-                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding:
+                                                const EdgeInsets.all(10),
 
-                                      // ================= PERFORMANCE (UNCHANGED LOGIC) =================
-                                      ListView.builder(
-                                        itemCount: performanceList.length,
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        itemBuilder: (context, i) {
-                                          final item = performanceList[i];
-
-                                          final double score =
-                                              (item['ObtainedScore'] ?? 0)
-                                                  .toDouble();
-
-                                          final String status =
-                                              item['Status'] ?? "";
-
-                                          return Container(
-                                            margin: const EdgeInsets.only(
-                                                bottom: 10),
-                                            padding: const EdgeInsets.all(12),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFF9FAFB),
+                                              color: const Color(
+                                                  0xFFE8F5E9),
+
                                               borderRadius:
-                                                  BorderRadius.circular(12),
+                                                  BorderRadius.circular(
+                                                      12),
                                             ),
+
+                                            child: const Icon(
+                                              Icons.menu_book_rounded,
+                                              color: Colors.green,
+                                            ),
+                                          ),
+
+                                          const SizedBox(width: 12),
+
+                                          Expanded(
                                             child: Column(
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                                  CrossAxisAlignment
+                                                      .start,
+
                                               children: [
-                                                Text(item['Activity'] ?? ""),
-                                                const SizedBox(height: 6),
-                                                Text(item['Remarks'] ?? ""),
-                                                const SizedBox(height: 6),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(status),
-                                                    Text("${score.toInt()}/5"),
-                                                  ],
-                                                )
+                                                Text(
+                                                  course['CourseName'] ??
+                                                      '',
+
+                                                  style:
+                                                      const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight:
+                                                        FontWeight.w800,
+                                                  ),
+                                                ),
+
+                                                const SizedBox(height: 2),
+
+                                                Text(
+                                                  courseCode,
+                                                  style: TextStyle(
+                                                    color: Colors
+                                                        .grey.shade600,
+                                                  ),
+                                                ),
                                               ],
                                             ),
-                                          );
-                                        },
+                                          ),
+                                        ],
                                       ),
+
+                                      const SizedBox(height: 18),
+
+                                      // ================= PERFORMANCE ITEMS =================
+
+                                      if (coursePerformance.isEmpty)
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.all(14),
+
+                                          decoration: BoxDecoration(
+                                            color: const Color(
+                                                0xFFF9FAFB),
+
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                    14),
+                                          ),
+
+                                          child: const Text(
+                                            "No evaluation found",
+                                          ),
+                                        ),
+
+                                      ...coursePerformance.map((item) {
+                                        final double score =
+                                            (item['ObtainedScore'] ??
+                                                    0)
+                                                .toDouble();
+
+                                        final String status =
+                                            item['Status'] ?? "";
+
+                                        final String remarks =
+                                            item['Remarks'] ?? "";
+
+                                        return Container(
+                                          margin:
+                                              const EdgeInsets.only(
+                                                  bottom: 12),
+
+                                          padding:
+                                              const EdgeInsets.all(14),
+
+                                          decoration: BoxDecoration(
+                                            color: const Color(
+                                                0xFFF9FAFB),
+
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                    16),
+                                          ),
+
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment
+                                                    .start,
+
+                                            children: [
+                                              // ================= ACTIVITY =================
+
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      item['Activity'] ??
+                                                          "",
+
+                                                      style:
+                                                          const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight
+                                                                .w700,
+
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                  ),
+
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 5,
+                                                    ),
+
+                                                    decoration:
+                                                        BoxDecoration(
+                                                      color:
+                                                          getStatusBg(
+                                                              status),
+
+                                                      borderRadius:
+                                                          BorderRadius
+                                                              .circular(
+                                                                  30),
+                                                    ),
+
+                                                    child: Text(
+                                                      status,
+
+                                                      style: TextStyle(
+                                                        color:
+                                                            getStatusColor(
+                                                                status),
+
+                                                        fontWeight:
+                                                            FontWeight
+                                                                .bold,
+
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+
+                                              const SizedBox(height: 12),
+
+                                              // ================= SCORE =================
+
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.star_rounded,
+                                                    color: Colors.amber,
+                                                    size: 18,
+                                                  ),
+
+                                                  const SizedBox(
+                                                      width: 6),
+
+                                                  Text(
+                                                    "Score: ${score.toInt()}/5",
+
+                                                    style: TextStyle(
+                                                      color:
+                                                          getScoreColor(
+                                                              score),
+
+                                                      fontWeight:
+                                                          FontWeight
+                                                              .bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+
+                                              const SizedBox(height: 12),
+
+                                              // ================= REMARKS =================
+
+                                              Container(
+                                                width: double.infinity,
+                                                padding:
+                                                    const EdgeInsets
+                                                        .all(12),
+
+                                                decoration:
+                                                    BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius
+                                                          .circular(12),
+
+                                                  border: Border.all(
+                                                    color: Colors
+                                                        .grey.shade200,
+                                                  ),
+                                                ),
+
+                                                child: Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment
+                                                          .start,
+
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.comment,
+                                                      size: 18,
+                                                      color:
+                                                          Colors.green,
+                                                    ),
+
+                                                    const SizedBox(
+                                                        width: 8),
+
+                                                    Expanded(
+                                                      child: Text(
+                                                        remarks,
+                                                        style:
+                                                            const TextStyle(
+                                                          height: 1.5,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
                                     ],
                                   ),
                                 );
