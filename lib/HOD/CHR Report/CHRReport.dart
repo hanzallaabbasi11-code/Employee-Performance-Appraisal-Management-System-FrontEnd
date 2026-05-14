@@ -16,6 +16,11 @@ class Chrreport extends StatefulWidget {
 class _ChrreportState extends State<Chrreport> {
   late Future<List<dynamic>> reportsFuture;
 
+  List<dynamic> reports = [];
+  List<String> availableDates = ["All"];
+
+  String selectedDate = "All";
+
   @override
   void initState() {
     super.initState();
@@ -24,13 +29,48 @@ class _ChrreportState extends State<Chrreport> {
 
   // ================= FETCH REPORTS =================
   Future<List<dynamic>> fetchReports() async {
-    final response = await http.get(Uri.parse('$Url/CHR/GetHODDashboard'));
+    Uri uri;
+
+    if (selectedDate == "All") {
+      uri = Uri.parse('$Url/CHR/GetHODDashboard');
+    } else {
+      uri = Uri.parse(
+        '$Url/CHR/GetHODDashboard?reportDate=$selectedDate',
+      );
+    }
+
+    final response = await http.get(uri);
 
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      final data = json.decode(response.body);
+
+      reports = data;
+
+      // Extract unique dates
+      final dates = data
+          .map<String>((e) {
+            DateTime dt = DateTime.parse(e["ReportDate"]);
+            return "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}";
+          })
+          .toSet()
+          .toList();
+
+      dates.sort();
+
+      availableDates = ["All", ...dates];
+
+      return data;
     } else {
       throw Exception("Failed to load reports");
     }
+  }
+
+  // ================= APPLY DATE FILTER =================
+  Future<void> applyDateFilter(String value) async {
+    setState(() {
+      selectedDate = value;
+      reportsFuture = fetchReports();
+    });
   }
 
   // ================= DELETE BATCH =================
@@ -64,7 +104,6 @@ class _ChrreportState extends State<Chrreport> {
           const SnackBar(content: Text("Report deleted successfully")),
         );
 
-        // 🔄 Refresh list
         setState(() {
           reportsFuture = fetchReports();
         });
@@ -81,6 +120,7 @@ class _ChrreportState extends State<Chrreport> {
   // ================= DATE FORMAT =================
   String formatDate(String date) {
     DateTime dt = DateTime.parse(date);
+
     return "${dt.day.toString().padLeft(2, '0')} ${_monthName(dt.month)} ${dt.year}";
   }
 
@@ -99,6 +139,7 @@ class _ChrreportState extends State<Chrreport> {
       "Nov",
       "Dec",
     ];
+
     return months[month - 1];
   }
 
@@ -116,39 +157,90 @@ class _ChrreportState extends State<Chrreport> {
         ),
         iconTheme: const IconThemeData(color: Colors.green),
       ),
-      body: FutureBuilder<List<dynamic>>(
-        future: reportsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Column(
+        children: [
+          // ================= FILTER =================
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 4,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedDate,
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down),
+                items: availableDates.map((date) {
+                  return DropdownMenuItem(
+                    value: date,
+                    child: Text(
+                      date == "All"
+                          ? "All Dates"
+                          : formatDate(date),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    applyDateFilter(value);
+                  }
+                },
+              ),
+            ),
+          ),
 
-          if (snapshot.hasError) {
-            return const Center(child: Text("Error loading reports"));
-          }
+          // ================= LIST =================
+          Expanded(
+            child: FutureBuilder<List<dynamic>>(
+              future: reportsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-          final data = snapshot.data!;
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text("Error loading reports"),
+                  );
+                }
 
-          if (data.isEmpty) {
-            return const Center(child: Text("No CHR Reports Found"));
-          }
+                final data = snapshot.data!;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: data.length,
-            itemBuilder: (context, index) {
-              final item = data[index];
-              return _buildCard(item);
-            },
-          );
-        },
+                if (data.isEmpty) {
+                  return const Center(
+                    child: Text("No CHR Reports Found"),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: data.length,
+                  itemBuilder: (context, index) {
+                    final item = data[index];
+
+                    return _buildCard(item);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // ================= CARD =================
   Widget _buildCard(dynamic item) {
-    double avgScore = double.tryParse(item["AvgScore"].toString()) ?? 0;
+    double avgScore =
+        double.tryParse(item["AvgScore"].toString()) ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -156,7 +248,10 @@ class _ChrreportState extends State<Chrreport> {
         borderRadius: BorderRadius.circular(14),
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black12.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
@@ -166,11 +261,16 @@ class _ChrreportState extends State<Chrreport> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Header Row (UPDATED WITH DELETE BUTTON)
+                // Header Row
                 Row(
                   children: [
-                    const Icon(Icons.assignment, color: Colors.green),
+                    const Icon(
+                      Icons.assignment,
+                      color: Colors.green,
+                    ),
+
                     const SizedBox(width: 8),
+
                     const Text(
                       "CHR REPORT",
                       style: TextStyle(
@@ -178,12 +278,17 @@ class _ChrreportState extends State<Chrreport> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+
                     const Spacer(),
 
-                    // 🗑 DELETE BUTTON
+                    // DELETE
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.redAccent),
-                      onPressed: () => deleteBatch(item["ReportId"]),
+                      icon: const Icon(
+                        Icons.delete,
+                        color: Colors.redAccent,
+                      ),
+                      onPressed: () =>
+                          deleteBatch(item["ReportId"]),
                     ),
                   ],
                 ),
@@ -199,13 +304,19 @@ class _ChrreportState extends State<Chrreport> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       const Text(
                         "DATE",
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
                       ),
+
                       const SizedBox(height: 4),
+
                       Text(
                         formatDate(item["ReportDate"]),
                         style: const TextStyle(
@@ -223,39 +334,61 @@ class _ChrreportState extends State<Chrreport> {
                 // Stats
                 Row(
                   children: [
-                    _statBox(item["TotalClasses"], "Total"),
-                    _statBox(item["CancelledClasses"], "Cancelled"),
+                    _statBox(
+                      item["TotalClasses"],
+                      "Total",
+                    ),
+
+                    _statBox(
+                      item["CancelledClasses"],
+                      "Cancelled",
+                    ),
                   ],
                 ),
+
                 const SizedBox(height: 8),
+
                 Row(
                   children: [
-                    _statBox(item["LateTeachers"], "Late"),
-                    _statBox(avgScore.toStringAsFixed(1), "Avg Score"),
+                    _statBox(
+                      item["LateTeachers"],
+                      "Late",
+                    ),
+
+                    _statBox(
+                      avgScore.toStringAsFixed(1),
+                      "Avg Score",
+                    ),
                   ],
                 ),
               ],
             ),
           ),
 
-          // Button
+          // BUTTON
           Container(
             width: double.infinity,
             decoration: const BoxDecoration(
               color: Colors.green,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(14)),
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(14),
+              ),
             ),
             child: TextButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        Chrreportdetail(reportId: item["ReportId"]),
+                    builder: (_) => Chrreportdetail(
+                      reportId: item["ReportId"],
+                    ),
                   ),
                 );
               },
-              icon: const Icon(Icons.visibility, color: Colors.white),
+              icon: const Icon(
+                Icons.visibility,
+                color: Colors.white,
+              ),
               label: const Text(
                 "View Details",
                 style: TextStyle(color: Colors.white),
@@ -281,12 +414,20 @@ class _ChrreportState extends State<Chrreport> {
           children: [
             Text(
               value.toString(),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
+
             const SizedBox(height: 4),
+
             Text(
               label,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
             ),
           ],
         ),

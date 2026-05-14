@@ -597,7 +597,7 @@ class _DetailedcourseevaluationState
           child: DropdownButtonFormField<String>(
             value: selectedEvalType,
             decoration: InputDecoration(
-              labelText: "EVALUATION TYPE",
+              labelText: "EVAL TYPE",
               filled: true,
               fillColor: Colors.grey.shade100,
               border: OutlineInputBorder(

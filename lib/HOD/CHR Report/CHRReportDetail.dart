@@ -1,5 +1,6 @@
 // ignore_for_file: file_names, use_build_context_synchronously, deprecated_member_use
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -16,6 +17,17 @@ class Chrreportdetail extends StatefulWidget {
 
 class _ChrreportdetailState extends State<Chrreportdetail> {
   late Future<List<dynamic>> futureData;
+
+  List<dynamic> allData = [];
+  List<dynamic> filteredData = [];
+
+  // ================= FILTER CONTROLLERS =================
+  final TextEditingController teacherCtrl = TextEditingController();
+  final TextEditingController courseCtrl = TextEditingController();
+
+  bool showFilters = true;
+
+  Timer? debounce;
 
   @override
   void initState() {
@@ -36,21 +48,69 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
     }
   }
 
+  // ================= LIVE FILTER API =================
+  Future<void> applyFilters() async {
+  try {
+    final uri = Uri.parse(
+      '$Url/CHR/FilterReport',
+    ).replace(
+      queryParameters: {
+        'reportId': widget.reportId.toString(),
+        'teacherName': teacherCtrl.text.trim(),
+        'courseCode': courseCtrl.text.trim(),
+      },
+    );
+
+    print(uri.toString());
+
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      setState(() {
+        filteredData = data;
+      });
+    } else {
+      print("FILTER ERROR => ${response.statusCode}");
+    }
+  } catch (e) {
+    print("FILTER EXCEPTION => $e");
+  }
+}
+  // ================= SEARCH WITH DELAY =================
+  void onSearchChanged() {
+    if (debounce?.isActive ?? false) debounce!.cancel();
+
+    debounce = Timer(const Duration(milliseconds: 400), () {
+      applyFilters();
+    });
+  }
+
   // ================= DELETE =================
   Future<void> deleteRow(int id) async {
     await http.delete(Uri.parse('$Url/CHR/DeleteRow/$id'));
 
+    futureData = fetchDetail();
+
+    final updated = await futureData;
+
     setState(() {
-      futureData = fetchDetail();
+      allData = updated;
+      filteredData = updated;
     });
+
+    applyFilters();
   }
 
   // ================= EDIT =================
   Future<void> editRow(dynamic item) async {
     TextEditingController lateCtrl =
         TextEditingController(text: item["LateIn"].toString());
+
     TextEditingController earlyCtrl =
         TextEditingController(text: item["LeftEarly"].toString());
+
     TextEditingController remarksCtrl =
         TextEditingController(text: item["Remarks"] ?? "");
 
@@ -92,9 +152,16 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
 
               Navigator.pop(context);
 
+              futureData = fetchDetail();
+
+              final updated = await futureData;
+
               setState(() {
-                futureData = fetchDetail();
+                allData = updated;
+                filteredData = updated;
               });
+
+              applyFilters();
             },
             child: const Text("Save"),
           )
@@ -130,13 +197,131 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
 
           final data = snap.data!;
 
+          if (allData.isEmpty) {
+            allData = data;
+            filteredData = data;
+          }
+
           if (data.isEmpty) {
             return const Center(child: Text("No Data Found"));
           }
 
-          return ListView(
-            padding: const EdgeInsets.all(12),
-            children: data.map((item) => _row(item)).toList(),
+          return Column(
+            children: [
+              // ================= FILTER BOX =================
+              Container(
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          showFilters = !showFilters;
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.filter_alt_outlined,
+                            color: Colors.green,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              "Filters",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            showFilters
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                          )
+                        ],
+                      ),
+                    ),
+
+                    if (showFilters) ...[
+                      const SizedBox(height: 14),
+
+                      // TEACHER
+                      TextField(
+                        controller: teacherCtrl,
+                        onChanged: (_) => onSearchChanged(),
+                        decoration: InputDecoration(
+                          hintText: "Teacher name...",
+                          filled: true,
+                          fillColor: const Color(0xFFF7F7F7),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade300,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade300,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // COURSE
+                      TextField(
+                        controller: courseCtrl,
+                        onChanged: (_) => onSearchChanged(),
+                        decoration: InputDecoration(
+                          hintText: "Course code...",
+                          filled: true,
+                          fillColor: const Color(0xFFF7F7F7),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade300,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade300,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]
+                  ],
+                ),
+              ),
+
+              // ================= LIST =================
+              Expanded(
+                child: ListView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12),
+                  children:
+                      filteredData.map((item) => _row(item)).toList(),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -156,14 +341,15 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
       ),
       child: Column(
         children: [
-          // TOP ROW
           Row(
             children: [
               Expanded(
                 child: Text(
                   item["TeacherName"] ?? "",
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
               _statusChip(item["Status"]),
@@ -172,25 +358,28 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
 
           const SizedBox(height: 4),
 
-          // COURSE + VENUE
           Row(
             children: [
               Text(
                 item["CourseCode"] ?? "",
                 style: const TextStyle(
-                    color: Colors.green, fontWeight: FontWeight.bold),
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(width: 6),
-              Text(
-                item["Venue"] ?? "",
-                style: const TextStyle(color: Colors.grey),
+              Expanded(
+                child: Text(
+                  item["Venue"] ?? "",
+                  style: const TextStyle(color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
 
           const SizedBox(height: 10),
 
-          // STATS
           Row(
             children: [
               _miniBox(item["LateIn"], "Late"),
@@ -202,7 +391,6 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
 
           const SizedBox(height: 10),
 
-          // REMARKS
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -213,7 +401,6 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
 
           const SizedBox(height: 10),
 
-          // ACTIONS
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -224,9 +411,15 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
               ),
               TextButton.icon(
                 onPressed: () => deleteRow(item["id"]),
-                icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                label:
-                    const Text("Del", style: TextStyle(color: Colors.red)),
+                icon: const Icon(
+                  Icons.delete,
+                  size: 16,
+                  color: Colors.red,
+                ),
+                label: const Text(
+                  "Del",
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             ],
           )
@@ -247,9 +440,14 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
         ),
         child: Column(
           children: [
-            Text(value.toString(),
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(label, style: const TextStyle(fontSize: 11))
+            Text(
+              value.toString(),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11),
+            )
           ],
         ),
       ),
@@ -273,7 +471,10 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(8),
@@ -293,7 +494,10 @@ class _ChrreportdetailState extends State<Chrreportdetail> {
     bool isCancelled = status == "Cancelled";
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 5,
+      ),
       decoration: BoxDecoration(
         color: isCancelled
             ? Colors.red.shade100

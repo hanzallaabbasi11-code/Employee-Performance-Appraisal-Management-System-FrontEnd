@@ -28,7 +28,11 @@ class _StudentdashboardState extends State<Studentdashboard> {
   List<StudentCourse> courses = [];
   QuestionnaireModel? activeQuestionnaire;
 
-  List<int> evaluatedEnrollments = []; // ✅ Track evaluated courses
+  List<int> evaluatedEnrollments = [];
+
+  // ✅ NEW
+  bool isConfidentialAllowed = false;
+  bool isCheckingConfidential = true;
 
   @override
   void initState() {
@@ -36,7 +40,42 @@ class _StudentdashboardState extends State<Studentdashboard> {
     fetchStudentCourses();
     fetchStudentName();
     fetchActiveQuestionnaire();
-    fetchSubmittedEvaluations(); // ✅ Load evaluated courses
+    fetchSubmittedEvaluations();
+
+    // ✅ NEW
+    checkConfidentialStatus();
+  }
+
+  /// ===============================
+  /// CHECK CONFIDENTIAL STATUS
+  /// ===============================
+  Future<void> checkConfidentialStatus() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          "$Url/Student/CheckConfidentialStatus/${widget.studentId}",
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          isConfidentialAllowed = data["isConfidential"] == true;
+          isCheckingConfidential = false;
+        });
+      } else {
+        setState(() {
+          isCheckingConfidential = false;
+        });
+      }
+    } catch (e) {
+      print("Confidential Status Error: $e");
+
+      setState(() {
+        isCheckingConfidential = false;
+      });
+    }
   }
 
   /// ===============================
@@ -93,7 +132,8 @@ class _StudentdashboardState extends State<Studentdashboard> {
     try {
       final response = await http.get(
         Uri.parse(
-            "$Url/Student/GetActiveQuestionnaire?type=Teacher Evaluation"),
+          "$Url/Student/GetActiveQuestionnaire?type=Teacher Evaluation",
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -126,7 +166,8 @@ class _StudentdashboardState extends State<Studentdashboard> {
     try {
       final response = await http.get(
         Uri.parse(
-            "$Url/Student/GetSubmittedStudentEvaluations/${widget.studentId}"),
+          "$Url/Student/GetSubmittedStudentEvaluations/${widget.studentId}",
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -145,8 +186,9 @@ class _StudentdashboardState extends State<Studentdashboard> {
   /// Course Card Widget
   /// ===============================
   Widget buildCourseCard(StudentCourse course) {
-    bool isEvaluated =
-        evaluatedEnrollments.contains(course.enrollmentID);
+    bool isEvaluated = evaluatedEnrollments.contains(
+      course.enrollmentID,
+    );
 
     return Container(
       width: double.infinity,
@@ -160,15 +202,20 @@ class _StudentdashboardState extends State<Studentdashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           /// Course Code + Session
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(course.courseCode,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(course.sessionName,
-                  style: const TextStyle(color: Colors.grey)),
+              Text(
+                course.courseCode,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                course.sessionName,
+                style: const TextStyle(color: Colors.grey),
+              ),
             ],
           ),
 
@@ -185,8 +232,8 @@ class _StudentdashboardState extends State<Studentdashboard> {
                 backgroundColor: isEvaluated
                     ? Colors.grey
                     : (activeQuestionnaire != null
-                        ? Colors.green
-                        : Colors.grey),
+                          ? Colors.green
+                          : Colors.grey),
                 foregroundColor: Colors.white,
               ),
               onPressed: (!isEvaluated &&
@@ -207,12 +254,13 @@ class _StudentdashboardState extends State<Studentdashboard> {
                       );
 
                       if (result == true) {
-                        fetchSubmittedEvaluations(); // refresh list
+                        fetchSubmittedEvaluations();
                       }
                     }
                   : null,
               child: Text(
-                  isEvaluated ? "Evaluated" : "Evaluate"),
+                isEvaluated ? "Evaluated" : "Evaluate",
+              ),
             ),
           ),
         ],
@@ -236,15 +284,16 @@ class _StudentdashboardState extends State<Studentdashboard> {
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
-
                     /// Profile Row
                     Row(
                       children: [
                         const CircleAvatar(
                           radius: 18,
                           backgroundImage: AssetImage(
-                              'assets/images/student_image.jpeg'),
+                            'assets/images/student_image.jpeg',
+                          ),
                         ),
+
                         const SizedBox(width: 10),
 
                         Expanded(
@@ -263,25 +312,36 @@ class _StudentdashboardState extends State<Studentdashboard> {
 
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
+                            backgroundColor:
+                                isConfidentialAllowed
+                                    ? Colors.white
+                                    : Colors.grey.shade300,
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    Confidentialevaluation(
-                                  studentId:
-                                      widget.studentId,
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Confidential Evaluation',
+                          onPressed:
+                              (isConfidentialAllowed &&
+                                      !isCheckingConfidential)
+                                  ? () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              Confidentialevaluation(
+                                            studentId:
+                                                widget.studentId,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                          child: Text(
+                            isConfidentialAllowed
+                                ? 'Confidential Evaluation'
+                                : 'Not Eligible',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF0A8F3C),
+                              color: isConfidentialAllowed
+                                  ? const Color(0xFF0A8F3C)
+                                  : Colors.black54,
                             ),
                           ),
                         ),
@@ -293,24 +353,26 @@ class _StudentdashboardState extends State<Studentdashboard> {
                     const Text(
                       'Teacher Evaluation',
                       style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
 
                     const SizedBox(height: 6),
 
                     const Text(
                       'Review and evaluate your courses for the current semester',
-                      style:
-                          TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
                     ),
 
                     const SizedBox(height: 15),
 
                     /// Course List
-                    ...courses
-                        .map((course) =>
-                            buildCourseCard(course)),
+                    ...courses.map(
+                      (course) => buildCourseCard(course),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -322,28 +384,29 @@ class _StudentdashboardState extends State<Studentdashboard> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    const Login()),
+                              builder: (context) =>
+                                  const Login(),
+                            ),
                           );
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: const BorderSide(
-                              color: Colors.red),
+                            color: Colors.red,
+                          ),
                           padding:
                               const EdgeInsets.symmetric(
-                                  vertical: 14),
+                            vertical: 14,
+                          ),
                           shape:
                               RoundedRectangleBorder(
                             borderRadius:
-                                BorderRadius.circular(
-                                    12),
+                                BorderRadius.circular(12),
                           ),
                         ),
                         child: const Text(
                           "Logout",
-                          style:
-                              TextStyle(fontSize: 16),
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
                     ),
@@ -364,7 +427,8 @@ class StudentCourse {
   final String courseTitle;
   final String teacherName;
   final String sessionName;
-final int sessionId;
+  final int sessionId;
+
   StudentCourse({
     required this.enrollmentID,
     required this.courseCode,
@@ -375,15 +439,15 @@ final int sessionId;
   });
 
   factory StudentCourse.fromJson(
-      Map<String, dynamic> json) {
+    Map<String, dynamic> json,
+  ) {
     return StudentCourse(
       enrollmentID: json['EnrollmentID'],
       courseCode: json['CourseCode'] ?? '',
       courseTitle: json['CourseTitle'] ?? '',
       teacherName: json['TeacherName'] ?? '',
-     sessionName: json['SessionName'] ?? '',
-     sessionId: json['SessionID'] ?? 0,
-      
+      sessionName: json['SessionName'] ?? '',
+      sessionId: json['SessionID'] ?? 0,
     );
   }
 }

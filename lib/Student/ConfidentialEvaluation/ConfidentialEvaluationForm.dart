@@ -100,11 +100,16 @@ class _ConfidentialevaluationformState
       );
 
       if (response.statusCode == 200) {
+        await ConfidentialDB.markAsSubmitted(
+          studentId: widget.studentId,
+          enrollmentId: widget.enrollmentId,
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Evaluation Submitted Successfully")),
         );
 
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(
           context,
@@ -322,7 +327,7 @@ class _ConfidentialevaluationformState
               // ElevatedButton(
               //   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               //   onPressed: () async {
-                 
+
               //     await ConfidentialDB.clearEvaluations();
 
               //     ScaffoldMessenger.of(context).showSnackBar(
@@ -333,7 +338,6 @@ class _ConfidentialevaluationformState
               // ),
 
               // const SizedBox(height: 10),
-
               const Center(
                 child: Text(
                   "Your responses will remain confidential.",

@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 import 'package:epams/Student/ConfidentialEvaluation/ConfidentialEvaluationForm.dart';
-//import 'package:epams/Student/EvaluationForm.dart';
+import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -12,20 +12,23 @@ import '../../Url.dart';
 
 class Confidentialevaluation extends StatefulWidget {
   final String studentId;
-  // Pass logged-in student ID
 
   const Confidentialevaluation({super.key, required this.studentId});
 
   @override
-  State<Confidentialevaluation> createState() => _ConfidentialevaluationState();
+  State<Confidentialevaluation> createState() =>
+      _ConfidentialevaluationState();
 }
 
-class _ConfidentialevaluationState extends State<Confidentialevaluation> {
+class _ConfidentialevaluationState
+    extends State<Confidentialevaluation> {
   bool isLoadingCourses = true;
   bool isLoadingQuestionnaire = true;
 
   List<StudentCourse> courses = [];
   QuestionnaireModel? activeQuestionnaire;
+
+  Map<int, bool> evaluatedCourses = {};
 
   @override
   void initState() {
@@ -34,7 +37,23 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
     fetchActiveQuestionnaire();
   }
 
-  // Fetch courses for the logged-in student
+  Future<void> loadEvaluatedCourses() async {
+    Map<int, bool> temp = {};
+
+    for (var course in courses) {
+      bool submitted = await ConfidentialDB.isAlreadySubmitted(
+        studentId: widget.studentId,
+        enrollmentId: course.enrollmentID,
+      );
+
+      temp[course.enrollmentID] = submitted;
+    }
+
+    setState(() {
+      evaluatedCourses = temp;
+    });
+  }
+
   Future<void> fetchStudentCourses() async {
     try {
       final response = await http.get(
@@ -43,8 +62,12 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
+
+        courses = data.map((e) => StudentCourse.fromJson(e)).toList();
+
+        await loadEvaluatedCourses();
+
         setState(() {
-          courses = data.map((e) => StudentCourse.fromJson(e)).toList();
           isLoadingCourses = false;
         });
       } else {
@@ -57,7 +80,6 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
     }
   }
 
-  // Fetch active confidential evaluation questionnaire
   Future<void> fetchActiveQuestionnaire() async {
     try {
       final response = await http.get(
@@ -90,6 +112,9 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
   }
 
   Widget buildCourseCard(StudentCourse course) {
+    bool isEvaluated =
+        evaluatedCourses[course.enrollmentID] ?? false;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 20),
@@ -102,7 +127,6 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Course Code + Semester
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -116,37 +140,55 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
               ),
             ],
           ),
+
           const SizedBox(height: 6),
+
           Text(course.courseTitle),
           Text(course.teacherName),
+
           const SizedBox(height: 20),
+
           Center(
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: activeQuestionnaire != null
-                    ? Colors.green
-                    : Colors.grey,
+                backgroundColor: isEvaluated
+                    ? Colors.grey
+                    : activeQuestionnaire != null
+                        ? Colors.green
+                        : Colors.grey,
                 foregroundColor: Colors.white,
               ),
-              onPressed: activeQuestionnaire != null
-                  ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Confidentialevaluationform(
-                            studentId: widget.studentId,
-                            enrollmentId: course.enrollmentID,
-                            sessionId: course.sessionId,
-                            courseCode: course.courseCode,
-                            courseName: course.courseTitle,
-                            teacherName: course.teacherName,
-                            questionnaire: activeQuestionnaire!,
-                          ),
-                        ),
-                      );
-                    }
-                  : null,
-              child: const Text('Evaluate'),
+              onPressed:
+                  (activeQuestionnaire != null && !isEvaluated)
+                      ? () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  Confidentialevaluationform(
+                                studentId: widget.studentId,
+                                enrollmentId: course.enrollmentID,
+                                sessionId: course.sessionId,
+                                courseCode: course.courseCode,
+                                courseName: course.courseTitle,
+                                teacherName: course.teacherName,
+                                questionnaire:
+                                    activeQuestionnaire!,
+                              ),
+                            ),
+                          );
+
+                          if (result == true) {
+                            setState(() {
+                              evaluatedCourses[
+                                  course.enrollmentID] = true;
+                            });
+                          }
+                        }
+                      : null,
+              child: Text(
+                isEvaluated ? 'Evaluated' : 'Evaluate',
+              ),
             ),
           ),
         ],
@@ -167,7 +209,6 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      /// Top Profile Row
                       Row(
                         children: [
                           const CircleAvatar(
@@ -186,6 +227,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                       ),
 
                       const SizedBox(height: 24),
+
                       const Text(
                         'Confidential Teacher Evaluation',
                         style: TextStyle(
@@ -193,18 +235,22 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 6),
+
                       const Text(
                         'Evaluate your courses confidentially for the current semester',
                         style: TextStyle(color: Colors.grey),
                       ),
+
                       const SizedBox(height: 15),
 
-                      // Courses List
-                      ...courses.map((course) => buildCourseCard(course)),
+                      ...courses.map(
+                        (course) => buildCourseCard(course),
+                      ),
 
-                      /// Logout Button
                       const SizedBox(height: 10),
+
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
@@ -212,16 +258,21 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const Login(),
+                                builder: (context) =>
+                                    const Login(),
                               ),
                             );
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side:
+                                const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius:
+                                  BorderRadius.circular(12),
                             ),
                           ),
                           child: const Text(
@@ -239,7 +290,6 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
   }
 }
 
-/// Model for student courses
 class StudentCourse {
   final int enrollmentID;
   final String courseCode;
