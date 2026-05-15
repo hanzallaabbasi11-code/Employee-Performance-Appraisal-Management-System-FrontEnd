@@ -224,7 +224,7 @@ class _ViewperformanceState extends State<Viewperformance> {
               child: ListView(
                 children: [
                   performanceChart(),
-                  detailCard(),
+                   detailCard(),
                 ],
               ),
             ),

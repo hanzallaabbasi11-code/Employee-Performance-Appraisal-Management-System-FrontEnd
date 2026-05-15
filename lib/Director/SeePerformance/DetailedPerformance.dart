@@ -2,10 +2,10 @@
 
 import 'dart:convert';
 import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
-//import 'package:epams/Student/Confidential_db.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class Detailedperformance extends StatefulWidget {
   final String teacherId;
@@ -71,7 +71,6 @@ class _DetailedperformanceState extends State<Detailedperformance> {
 
     final db = await ConfidentialDB.database;
 
-    // GET SESSION NAME
     String sessionName = "";
 
     try {
@@ -84,14 +83,12 @@ class _DetailedperformanceState extends State<Detailedperformance> {
       sessionName = selectedSession.toString();
     }
 
-    // GET ALL RECORDS
     List<Map<String, dynamic>> data = await db.query(
       "evaluations",
       where: "courseCode = ?",
       whereArgs: [widget.courseCode],
     );
 
-    // FILTER SESSION
     data = data.where((e) {
       String dbSession = e['session'].toString();
 
@@ -102,7 +99,6 @@ class _DetailedperformanceState extends State<Detailedperformance> {
           );
     }).toList();
 
-    // GROUP QUESTIONS
     Map<String, List<Map<String, dynamic>>> grouped = {};
 
     for (var item in data) {
@@ -159,7 +155,6 @@ class _DetailedperformanceState extends State<Detailedperformance> {
   // ================= API =================
 
   Future getQuestionStats() async {
-    // ================= LOCAL DB =================
     if (selectedType == "Confidential Evaluation") {
       await getConfidentialData();
       return;
@@ -171,8 +166,13 @@ class _DetailedperformanceState extends State<Detailedperformance> {
 
     String type = "student";
 
-    if (selectedType == "Peer Evaluation") type = "peer";
-    if (selectedType == "Teacher Evaluation") type = "student";
+    if (selectedType == "Peer Evaluation") {
+      type = "peer";
+    }
+
+    if (selectedType == "Teacher Evaluation") {
+      type = "student";
+    }
 
     var res = await http.get(
       Uri.parse(
@@ -274,9 +274,106 @@ class _DetailedperformanceState extends State<Detailedperformance> {
     );
   }
 
+  // ================= QUESTIONS GRAPH =================
+
+  Widget overallGraph() {
+  List<_ChartData> chartData = [];
+
+  for (int i = 0; i < questions.length; i++) {
+    double avg =
+        double.tryParse(
+              questions[i]['AverageScore'].toString(),
+            ) ??
+            0;
+
+    chartData.add(
+      _ChartData(
+        "Q${i + 1}",
+        avg,
+      ),
+    );
+  }
+
+     double graphWidth = questions.length * 70;
+
+  if (graphWidth < MediaQuery.of(context).size.width) {
+    graphWidth = MediaQuery.of(context).size.width;
+  }
+
+  return Container(
+    padding: const EdgeInsets.all(12),
+    margin: const EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: const [
+        BoxShadow(
+          color: Colors.black12,
+          blurRadius: 6,
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$selectedType Questions Graph',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.green,
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ================= SCROLLABLE GRAPH =================
+
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: graphWidth,
+            height: 320,
+            child: SfCartesianChart(
+              tooltipBehavior: TooltipBehavior(
+                enable: true,
+              ),
+              primaryXAxis: CategoryAxis(
+                labelRotation: 0,
+              ),
+              primaryYAxis: NumericAxis(
+                minimum: 0,
+                maximum: 4,
+                interval: 1,
+                title: AxisTitle(
+                  text: 'Result Out Of 4',
+                ),
+              ),
+              series: <CartesianSeries>[
+                ColumnSeries<_ChartData, String>(
+                  dataSource: chartData,
+                  xValueMapper: (_ChartData data, _) => data.label,
+                  yValueMapper: (_ChartData data, _) => data.value,
+                  dataLabelSettings: const DataLabelSettings(
+                    isVisible: true,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.green,
+                  width: 0.6,
+                  spacing: 0.2,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
   // ================= QUESTION CARD =================
 
-  Widget questionCard(q) {
+  Widget questionCard(q, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
@@ -294,27 +391,45 @@ class _DetailedperformanceState extends State<Detailedperformance> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            q['QuestionText'] ?? "",
+            "Q${index + 1}",
             style: const TextStyle(
-              fontWeight: FontWeight.w500,
+              color: Colors.green,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
 
           const SizedBox(height: 8),
 
           Text(
-            "Average: ${q['AverageScore']} / 4",
+            q['QuestionText'] ?? "",
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            "Average Result: ${q['AverageScore']} / 4",
             style: const TextStyle(
               color: Colors.green,
               fontWeight: FontWeight.bold,
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
 
           starRow("Poor", q['Score1']),
+          const SizedBox(height: 6),
+
           starRow("Average", q['Score2']),
+          const SizedBox(height: 6),
+
           starRow("Good", q['Score3']),
+          const SizedBox(height: 6),
+
           starRow("Excellent", q['Score4']),
         ],
       ),
@@ -358,6 +473,7 @@ class _DetailedperformanceState extends State<Detailedperformance> {
               style: const TextStyle(
                 color: Colors.green,
                 fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
             ),
 
@@ -368,18 +484,42 @@ class _DetailedperformanceState extends State<Detailedperformance> {
                   ? const Center(
                       child: CircularProgressIndicator(),
                     )
-                  : ListView.builder(
-                      itemCount: questions.length,
-                      itemBuilder: (context, index) {
-                        return questionCard(
-                          questions[index],
-                        );
-                      },
-                    ),
+                  : questions.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No Data Found",
+                          ),
+                        )
+                      : ListView(
+                          children: [
+                            // ================= OVERALL QUESTIONS GRAPH =================
+
+                            overallGraph(),
+
+                            // ================= QUESTIONS =================
+
+                            ...List.generate(
+                              questions.length,
+                              (index) => questionCard(
+                                questions[index],
+                                index,
+                              ),
+                            ),
+                          ],
+                        ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+// ================= CHART MODEL =================
+
+class _ChartData {
+  final String label;
+  final double value;
+
+  _ChartData(this.label, this.value);
 }

@@ -181,53 +181,53 @@ class TeacherdashboardState extends State<Teacherdashboard> {
               const SizedBox(height: 20),
 
               /// KPI SECTION (UNCHANGED)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "KPI Metrics Overview",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              // Container(
+              //   padding: const EdgeInsets.all(16),
+              //   decoration: BoxDecoration(
+              //     color: Colors.white,
+              //     borderRadius: BorderRadius.circular(15),
+              //     border: Border.all(color: Colors.green.shade200),
+              //   ),
+              //   child: Column(
+              //     crossAxisAlignment: CrossAxisAlignment.start,
+              //     children: [
+              //       const Text(
+              //         "KPI Metrics Overview",
+              //         style: TextStyle(
+              //           fontSize: 16,
+              //           fontWeight: FontWeight.bold,
+              //         ),
+              //       ),
 
-                    const SizedBox(height: 20),
+              //       const SizedBox(height: 20),
 
-                    SizedBox(
-                      height: 250,
-                      child: SfCartesianChart(
-                        primaryXAxis: CategoryAxis(),
-                        primaryYAxis: NumericAxis(
-                          minimum: 0,
-                          maximum: 100,
-                          interval: 25,
-                        ),
-                        series: <CartesianSeries>[
-                          ColumnSeries<KpiData, String>(
-                            dataSource: [
-                              KpiData("Peer", 82),
-                              KpiData("Student", 90),
-                              KpiData("CHR", 96),
-                              KpiData("Society", 78),
-                            ],
-                            xValueMapper: (KpiData data, _) => data.category,
-                            yValueMapper: (KpiData data, _) => data.score,
-                            color: Colors.green,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              //       SizedBox(
+              //         height: 250,
+              //         child: SfCartesianChart(
+              //           primaryXAxis: CategoryAxis(),
+              //           primaryYAxis: NumericAxis(
+              //             minimum: 0,
+              //             maximum: 100,
+              //             interval: 25,
+              //           ),
+              //           series: <CartesianSeries>[
+              //             ColumnSeries<KpiData, String>(
+              //               dataSource: [
+              //                 KpiData("Peer", 82),
+              //                 KpiData("Student", 90),
+              //                 KpiData("CHR", 96),
+              //                 KpiData("Society", 78),
+              //               ],
+              //               xValueMapper: (KpiData data, _) => data.category,
+              //               yValueMapper: (KpiData data, _) => data.score,
+              //               color: Colors.green,
+              //             ),
+              //           ],
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
 
               const SizedBox(height: 20),
 

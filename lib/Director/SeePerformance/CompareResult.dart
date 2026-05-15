@@ -350,23 +350,23 @@ class _CompareresultState extends State<Compareresult> {
                 children: [
                   // -------- WINNER BANNER --------
 
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        "🏆 $winner",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
+                  // Container(
+                  //   width: double.infinity,
+                  //   padding: const EdgeInsets.all(14),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.green.shade100,
+                  //     borderRadius: BorderRadius.circular(12),
+                  //   ),
+                  //   child: Center(
+                  //     child: Text(
+                  //       "🏆 $winner",
+                  //       style: const TextStyle(
+                  //         fontWeight: FontWeight.bold,
+                  //         fontSize: 16,
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
 
                   const SizedBox(height: 20),
 

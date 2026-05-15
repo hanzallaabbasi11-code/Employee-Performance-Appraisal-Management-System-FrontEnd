@@ -1,4 +1,4 @@
-// ignore_for_file: file_names, deprecated_member_use
+// ignore_for_file: file_names, deprecated_member_use, avoid_print
 
 import 'package:epams/HOD/AddPeerEvaluatorScreen.dart';
 import 'package:epams/HOD/CHR%20Report/CHRReport.dart';
@@ -10,6 +10,10 @@ import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 import 'package:epams/HOD/AddKpi/AddKpiScreen.dart';
 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:epams/Url.dart';
+
 class HodDashboard extends StatefulWidget {
   final String hodId; // ✅ logged in HOD id
 
@@ -17,10 +21,167 @@ class HodDashboard extends StatefulWidget {
 
   @override
   State<HodDashboard> createState() => _HodState();
+
+  
 }
 
 class _HodState extends State<HodDashboard> {
   @override
+    @override
+  void initState() {
+    super.initState();
+
+    getTeachersCount();
+    getTopPerformer();
+  }
+
+  int totalTeachers=0;
+  String topPerformerName = "Loading...";
+  double topPerformerPercentage = 0;
+
+  Future<void> getTeachersCount() async{
+
+  try{
+     int sessionId=3;
+
+     final response= await http.get(Uri.parse('$Url/Performer/GetTeachersCount?sessionId=$sessionId',));
+
+     print("Teachers Count Response: ${response.body}");
+
+     if(response.statusCode==200){
+      final data = jsonDecode(response.body);
+
+      setState(() {
+        totalTeachers = data['TotalTeachers'];
+      });
+
+     }
+
+
+  }catch(e)
+  {
+
+   print("Teachers Count Error: $e");
+  }     
+  }
+
+  Future<void> getTopPerformer() async {
+  try {
+
+    int sessionId = 3;
+
+    final response = await http.get(
+      Uri.parse(
+        '$Url/Performer/GetBestPerformerTeacher?sessionId=$sessionId',
+      ),
+    );
+
+    print("Top Performer Response: ${response.body}");
+
+    if (response.statusCode == 200) {
+
+      final data = jsonDecode(response.body);
+
+      setState(() {
+
+        topPerformerName =
+            data['TeacherName'] ?? "N/A";
+
+        topPerformerPercentage =
+            (data['Percentage'] ?? 0).toDouble();
+
+      });
+
+    }
+
+  } catch (e) {
+
+    print("Top Performer Error: $e");
+
+  }
+}
+
+
+//   Widget studentCard(
+//   String name,
+//   String department,
+// ) {
+//   return Card(
+//     child: ListTile(
+//       title: Text(name),
+//       subtitle: Text(department),
+//     ),
+//   );
+// }
+
+
+Widget buildTopCard({
+  required String title,
+  required String value,
+  required String subtitle,
+  required IconData icon,
+  required Color iconColor,
+}) {
+
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.15),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+
+    child: Column(
+      children: [
+
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Icon(
+          icon,
+          size: 40,
+          color: iconColor,
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+
+        const SizedBox(height: 4),
+
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
   Widget build(BuildContext context) {
     String hodId = widget.hodId; // ✅ use passed id
 
@@ -56,6 +217,37 @@ class _HodState extends State<HodDashboard> {
               ),
 
               const SizedBox(height: 20),
+
+              Row(
+  children: [
+
+    Expanded(
+      child: buildTopCard(
+        title: "Total Teachers",
+        value: totalTeachers.toString(),
+        subtitle: "Active Faculty",
+        icon: Icons.groups,
+        iconColor: Colors.blue,
+      ),
+    ),
+
+    const SizedBox(width: 12),
+
+    Expanded(
+      child: buildTopCard(
+        title: "Top Performer",
+        value: topPerformerName,
+        subtitle:
+            "${topPerformerPercentage.toStringAsFixed(1)}% Rating",
+        icon: Icons.workspace_premium,
+        iconColor: Colors.orange,
+      ),
+    ),
+
+  ],
+),
+
+const SizedBox(height: 20),
 
               Text(
                 'Manage',
