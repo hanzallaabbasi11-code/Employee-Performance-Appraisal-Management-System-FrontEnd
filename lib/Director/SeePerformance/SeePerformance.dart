@@ -82,7 +82,6 @@ class _SeeperformanceState extends State<Seeperformance> {
   Future getPerformance() async {
     if (selectedSession == null) return;
 
-    // ================= FILTER MAPPING =================
     String backendDepartment = "All";
 
     if (selectedDepartment == "CS") {
@@ -102,22 +101,14 @@ class _SeeperformanceState extends State<Seeperformance> {
 
     var data = jsonDecode(res.body);
 
-    for (var t in data) {
-      double student = (t['StudentAverage'] ?? 0).toDouble();
-      double peer = (t['PeerAverage'] ?? 0).toDouble();
-      double chr = (t['ChrAverage'] ?? 0).toDouble();
-
-      double percent = ((student + peer + chr) / 30) * 100;
-      t['Percentage'] = percent.clamp(0, 100);
-    }
-
     setState(() {
       teachers = data;
     });
   }
 
+  // ================= MINI BAR =================
   Widget _buildMiniBar(String label, double value, Color color) {
-    double normalized = (value / 10);
+    double normalized = (value / 100);
     normalized = normalized.clamp(0.0, 1.0);
 
     return Row(
@@ -127,13 +118,13 @@ class _SeeperformanceState extends State<Seeperformance> {
           width: 90,
           child: Text(
             label,
-            style: TextStyle(fontSize: 12),
+            style: const TextStyle(fontSize: 12),
           ),
         ),
         Expanded(
           child: Container(
             height: 6,
-            margin: EdgeInsets.symmetric(horizontal: 8),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(10),
@@ -152,7 +143,7 @@ class _SeeperformanceState extends State<Seeperformance> {
         ),
         Text(
           value.toStringAsFixed(1),
-          style: TextStyle(fontSize: 12),
+          style: const TextStyle(fontSize: 12),
         ),
       ],
     );
@@ -212,29 +203,88 @@ class _SeeperformanceState extends State<Seeperformance> {
 
   // ================= CHART =================
   Widget performanceChart() {
-    if (teachers.isEmpty) return SizedBox();
+    if (teachers.isEmpty) return const SizedBox();
 
-    var topTeachers = teachers.take(3).toList();
+    List chartData = [...teachers];
+
+    // descending order by percentage
+    chartData.sort((a, b) {
+      double aValue =
+          ((a['StudentAverage'] ?? 0).toDouble() +
+                  (a['PeerAverage'] ?? 0).toDouble() +
+                  (a['ChrAverage'] ?? 0).toDouble()) /
+              30 *
+              100;
+
+      double bValue =
+          ((b['StudentAverage'] ?? 0).toDouble() +
+                  (b['PeerAverage'] ?? 0).toDouble() +
+                  (b['ChrAverage'] ?? 0).toDouble()) /
+              30 *
+              100;
+
+      return bValue.compareTo(aValue);
+    });
 
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 220,
-            child: SfCartesianChart(
-              primaryXAxis: CategoryAxis(),
-              series: [
-                ColumnSeries(
-                  dataSource: topTeachers,
-                  xValueMapper: (d, _) => d['Name'] ?? '',
-                  yValueMapper: (d, _) => d['Percentage'] ?? 0,
+          const Text(
+            "Teachers Performance",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: chartData.length * 120,
+              height: 320,
+              child: SfCartesianChart(
+                primaryXAxis: CategoryAxis(
+                  labelRotation: -45,
                 ),
-              ],
+                primaryYAxis: NumericAxis(
+                  minimum: 0,
+                  maximum: 100,
+                  interval: 10,
+                ),
+                tooltipBehavior: TooltipBehavior(enable: true),
+                series: <CartesianSeries>[
+                  ColumnSeries(
+                    dataSource: chartData,
+                    xValueMapper: (d, _) => d['Name'] ?? '',
+                    yValueMapper: (d, _) {
+                      double student =
+                          (d['StudentAverage'] ?? 0).toDouble();
+
+                      double peer =
+                          (d['PeerAverage'] ?? 0).toDouble();
+
+                      double chr =
+                          (d['ChrAverage'] ?? 0).toDouble();
+
+                      double percent =
+                          ((student + peer + chr) / 30) * 100;
+
+                      return percent.clamp(0, 100);
+                    },
+                    dataLabelSettings: const DataLabelSettings(
+                      isVisible: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -244,144 +294,153 @@ class _SeeperformanceState extends State<Seeperformance> {
 
   // ================= CARD =================
   Widget teacherCard(t) {
-  double student =
-      (t['StudentAverage'] ?? 0).toDouble();
+    double student = (t['StudentAverage'] ?? 0).toDouble();
 
-  double peer =
-      (t['PeerAverage'] ?? 0).toDouble();
+    double peer = (t['PeerAverage'] ?? 0).toDouble();
 
-  double chr =
-      (t['ChrAverage'] ?? 0).toDouble();
+    double chr = (t['ChrAverage'] ?? 0).toDouble();
 
-  return FutureBuilder<double>(
-    future: ConfidentialDB.getAverageScoreBySessionId(
-      teacherName: t['Name']?.toString() ?? '',
-      sessionId: selectedSession ?? 0,
-    ),
-    builder: (context, snapshot) {
+    return FutureBuilder<double>(
+      future: ConfidentialDB.getAverageScoreBySessionId(
+        teacherName: t['Name']?.toString() ?? '',
+        sessionId: selectedSession ?? 0,
+      ),
+      builder: (context, snapshot) {
+        // ================= CONVERT EACH KPI TO % =================
+        double studentPercent = (student / 10) * 100;
 
-      double confidential =
-          (snapshot.data ?? 0) * 2.5;
+        double peerPercent = (peer / 10) * 100;
 
-      double percent =
-          ((student + peer + chr + confidential) / 40) *
-              100;
+        double chrPercent = (chr / 10) * 100;
 
-      percent = percent.clamp(0, 100);
+        double confidentialRaw = (snapshot.data ?? 0) * 2.5;
 
-      return Container(
-        margin: EdgeInsets.only(bottom: 14),
-        padding: EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    t['Name']?.toString() ?? '',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+        double confidentialPercent = (confidentialRaw / 10) * 100;
 
-                SizedBox(width: 10),
+        // ================= FINAL TOTAL % =================
+        double percent = (
+              studentPercent +
+              peerPercent +
+              chrPercent +
+              confidentialPercent
+            ) /
+            4;
 
-                Text(
-                  "${percent.toStringAsFixed(0)}%",
-                ),
-              ],
-            ),
+        percent = percent.clamp(0, 100);
 
-            Text(
-              t['CourseCode']?.toString() ?? '',
-            ),
-
-            SizedBox(height: 8),
-
-            LinearProgressIndicator(
-              value: percent / 100,
-            ),
-
-            SizedBox(height: 10),
-
-            _buildMiniBar(
-              "Student",
-              student,
-              Colors.green,
-            ),
-
-            _buildMiniBar(
-              "Peer",
-              peer,
-              Colors.orange,
-            ),
-
-            _buildMiniBar(
-              "CHR",
-              chr,
-              Colors.purple,
-            ),
-
-            // 🔥 NEW CONFIDENTIAL KPI
-            _buildMiniBar(
-              "Confidential",
-              confidential,
-              Colors.blue,
-            ),
-
-            SizedBox(height: 10),
-
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => Detailedperformance(
-                      teacherId: t['TeacherID'],
-                      courseCode: t['CourseCode'],
-                      sessionId: selectedSession!,
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      t['Name']?.toString() ?? '',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                );
-              },
-              child: Text("View Performance"),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+
+                  const SizedBox(width: 10),
+
+                  Text(
+                    "${percent.toStringAsFixed(0)}%",
+                  ),
+                ],
+              ),
+
+              Text(
+                t['CourseCode']?.toString() ?? '',
+              ),
+
+              const SizedBox(height: 8),
+
+              LinearProgressIndicator(
+                value: percent / 100,
+              ),
+
+              const SizedBox(height: 10),
+
+              _buildMiniBar(
+                "Student",
+                studentPercent,
+                Colors.green,
+              ),
+
+              _buildMiniBar(
+                "Peer",
+                peerPercent,
+                Colors.orange,
+              ),
+
+              _buildMiniBar(
+                "CHR",
+                chrPercent,
+                Colors.purple,
+              ),
+
+              // 🔥 CONFIDENTIAL KPI
+              _buildMiniBar(
+                "Confidential",
+                confidentialPercent,
+                Colors.blue,
+              ),
+
+              const SizedBox(height: 10),
+
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Detailedperformance(
+                        teacherId: t['TeacherID'],
+                        courseCode: t['CourseCode'],
+                        sessionId: selectedSession!,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text("View Performance"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Employee Performance"),
+        title: const Text("Employee Performance"),
       ),
       body: ListView(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(12),
         children: [
           sessionDropdown(),
 
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           departmentDropdown(),
 
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           courseFilter(),
 
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           ElevatedButton(
             onPressed: () {
@@ -392,12 +451,12 @@ class _SeeperformanceState extends State<Seeperformance> {
                 ),
               );
             },
-            child: Text('Detailed'),
+            child: const Text('Detailed'),
           ),
 
           performanceChart(),
 
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           ...teachers.map((t) => teacherCard(t)),
         ],

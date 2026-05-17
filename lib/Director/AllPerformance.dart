@@ -281,7 +281,7 @@ class _AllperformanceState extends State<Allperformance> {
     Function(String?) onChange,
   ) {
     return DropdownButtonFormField(
-      value: value,
+      initialValue: value,
       hint: Text(hint),
       items: items,
       onChanged: onChange,

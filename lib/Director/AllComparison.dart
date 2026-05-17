@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -263,7 +265,7 @@ class _AllComparisonScreenState extends State<AllComparisonScreen> {
   Widget _dropdown(String hint, dynamic value,
       List<DropdownMenuItem> items, Function(dynamic) onChange) {
     return DropdownButtonFormField(
-      value: value,
+      initialValue: value,
       items: items,
       onChanged: onChange,
       decoration: InputDecoration(labelText: hint),
@@ -329,8 +331,12 @@ class _AllComparisonScreenState extends State<AllComparisonScreen> {
     final t2 = teacher2Data?['Breakdown'] ?? [];
 
     Set<String> keys = {};
-    for (var e in t1) keys.add(e['SubKPI']);
-    for (var e in t2) keys.add(e['SubKPI']);
+    for (var e in t1) {
+      keys.add(e['SubKPI']);
+    }
+    for (var e in t2) {
+      keys.add(e['SubKPI']);
+    }
 
     return Card(
       child: Column(

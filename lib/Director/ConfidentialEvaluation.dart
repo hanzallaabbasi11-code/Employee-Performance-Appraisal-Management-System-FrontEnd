@@ -120,7 +120,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              value: selectedEmail,
+              initialValue: selectedEmail,
               hint: const Text("Select Email"),
               isExpanded: true,
               items: emails.map<DropdownMenuItem<String>>((e) {
@@ -139,7 +139,7 @@ class _ConfidentialevaluationState extends State<Confidentialevaluation> {
             const SizedBox(height: 10),
 
             DropdownButtonFormField<String>(
-              value: selectedFilter,
+              initialValue: selectedFilter,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12),

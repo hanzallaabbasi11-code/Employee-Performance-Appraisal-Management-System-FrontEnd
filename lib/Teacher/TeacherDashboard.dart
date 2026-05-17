@@ -9,11 +9,9 @@ import 'package:http/http.dart' as http;
 import 'package:epams/Teacher/ClassHeldReport.dart';
 import 'package:epams/Teacher/CourseManagmentEvaluation.dart';
 import 'package:epams/Teacher/EvaluateSocietyMentor/EvaluateSocietyMentors.dart';
-import 'package:epams/Teacher/Kpidatamodel.dart';
 import 'package:epams/Teacher/PeerEvaluation/PeerEvaluation.dart';
 import 'package:epams/Teacher/TeacherSeePerformance/TeacherSeePerformance.dart';
 import 'package:epams/login.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
 
 class Teacherdashboard extends StatefulWidget {
   final String teacherID;

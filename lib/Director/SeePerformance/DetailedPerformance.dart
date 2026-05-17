@@ -20,12 +20,19 @@ class Detailedperformance extends StatefulWidget {
   });
 
   @override
-  State<Detailedperformance> createState() => _DetailedperformanceState();
+  State<Detailedperformance> createState() =>
+      _DetailedperformanceState();
 }
 
-class _DetailedperformanceState extends State<Detailedperformance> {
+class _DetailedperformanceState
+    extends State<Detailedperformance> {
   List sessions = [];
   List questions = [];
+
+  // ================= NEW SECTION LIST =================
+
+  List<String> sections = ["All"];
+  String selectedSection = "All";
 
   int? selectedSession;
 
@@ -59,7 +66,39 @@ class _DetailedperformanceState extends State<Detailedperformance> {
       selectedSession = widget.sessionId;
     });
 
+    // ================= LOAD SECTIONS =================
+
+    await getSections();
+
     getQuestionStats();
+  }
+
+  // ================= GET SECTIONS =================
+
+  Future getSections() async {
+    var res = await http.get(
+      Uri.parse(
+        "$Url/ExtraFeatures/GetSections"
+        "?teacherId=${widget.teacherId}"
+        "&sessionId=$selectedSession"
+        "&courseCode=${widget.courseCode}",
+      ),
+    );
+
+    var data = jsonDecode(res.body);
+
+    List<String> loadedSections = ["All"];
+
+    for (var s in data) {
+      loadedSections.add(
+        s['section']?.toString() ?? '',
+      );
+    }
+
+    setState(() {
+      sections = loadedSections;
+      selectedSection = "All";
+    });
   }
 
   // ================= CONFIDENTIAL LOCAL DB =================
@@ -92,17 +131,37 @@ class _DetailedperformanceState extends State<Detailedperformance> {
     data = data.where((e) {
       String dbSession = e['session'].toString();
 
-      return dbSession == sessionName ||
-          dbSession == selectedSession.toString() ||
-          dbSession.contains(
-            RegExp(r'\d{4}').stringMatch(sessionName) ?? '',
-          );
+      bool sessionMatch =
+          dbSession == sessionName ||
+              dbSession ==
+                  selectedSession.toString() ||
+              dbSession.contains(
+                RegExp(r'\d{4}')
+                        .stringMatch(sessionName) ??
+                    '',
+              );
+
+      // ================= SECTION FILTER =================
+
+      bool sectionMatch = true;
+
+      if (selectedSection != "All") {
+        sectionMatch =
+            e['section']
+                    ?.toString()
+                    .trim() ==
+                selectedSection;
+      }
+
+      return sessionMatch && sectionMatch;
     }).toList();
 
-    Map<String, List<Map<String, dynamic>>> grouped = {};
+    Map<String, List<Map<String, dynamic>>> grouped =
+        {};
 
     for (var item in data) {
-      String question = item['question'].toString();
+      String question =
+          item['question'].toString();
 
       if (!grouped.containsKey(question)) {
         grouped[question] = [];
@@ -122,9 +181,11 @@ class _DetailedperformanceState extends State<Detailedperformance> {
       double total = 0;
 
       for (var row in values) {
-        String answer = row['answer'].toString();
+        String answer =
+            row['answer'].toString();
 
-        int score = ConfidentialDB.getScore(answer);
+        int score =
+            ConfidentialDB.getScore(answer);
 
         total += score;
 
@@ -134,11 +195,14 @@ class _DetailedperformanceState extends State<Detailedperformance> {
         if (score == 4) score4++;
       }
 
-      double avg = values.isNotEmpty ? total / values.length : 0;
+      double avg = values.isNotEmpty
+          ? total / values.length
+          : 0;
 
       result.add({
         "QuestionText": question,
-        "AverageScore": avg.toStringAsFixed(2),
+        "AverageScore":
+            avg.toStringAsFixed(2),
         "Score1": score1,
         "Score2": score2,
         "Score3": score3,
@@ -155,7 +219,8 @@ class _DetailedperformanceState extends State<Detailedperformance> {
   // ================= API =================
 
   Future getQuestionStats() async {
-    if (selectedType == "Confidential Evaluation") {
+    if (selectedType ==
+        "Confidential Evaluation") {
       await getConfidentialData();
       return;
     }
@@ -166,17 +231,33 @@ class _DetailedperformanceState extends State<Detailedperformance> {
 
     String type = "student";
 
-    if (selectedType == "Peer Evaluation") {
+    if (selectedType ==
+        "Peer Evaluation") {
       type = "peer";
     }
 
-    if (selectedType == "Teacher Evaluation") {
+    if (selectedType ==
+        "Teacher Evaluation") {
       type = "student";
+    }
+
+    // ================= SECTION PARAM =================
+
+    String sectionParam = "";
+
+    if (selectedSection != "All") {
+      sectionParam =
+          "&section=$selectedSection";
     }
 
     var res = await http.get(
       Uri.parse(
-        "$Url/Performance/GetTeacherQuestionStatsFull?teacherId=${widget.teacherId}&sessionId=$selectedSession&evaluationType=$type&courseCode=${widget.courseCode}",
+        "$Url/Performance/GetTeacherQuestionStatsFull"
+        "?teacherId=${widget.teacherId}"
+        "&sessionId=$selectedSession"
+        "&evaluationType=$type"
+        "&courseCode=${widget.courseCode}"
+        "$sectionParam",
       ),
     );
 
@@ -196,7 +277,8 @@ class _DetailedperformanceState extends State<Detailedperformance> {
       decoration: InputDecoration(
         labelText: "Select Session",
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius:
+              BorderRadius.circular(12),
         ),
       ),
       items: sessions.map<DropdownMenuItem>((s) {
@@ -205,9 +287,42 @@ class _DetailedperformanceState extends State<Detailedperformance> {
           child: Text(s['name']),
         );
       }).toList(),
-      onChanged: (value) {
+      onChanged: (value) async {
         setState(() {
           selectedSession = value;
+        });
+
+        // ================= RELOAD SECTIONS =================
+
+        await getSections();
+
+        getQuestionStats();
+      },
+    );
+  }
+
+  // ================= SECTION DROPDOWN =================
+
+  Widget sectionDropdown() {
+    return DropdownButtonFormField(
+      initialValue: selectedSection,
+      decoration: InputDecoration(
+        labelText: "Select Section",
+        border: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(12),
+        ),
+      ),
+      items: sections.map((section) {
+        return DropdownMenuItem(
+          value: section,
+          child: Text(section),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          selectedSection =
+              value.toString();
         });
 
         getQuestionStats();
@@ -221,9 +336,11 @@ class _DetailedperformanceState extends State<Detailedperformance> {
     return DropdownButtonFormField(
       initialValue: selectedType,
       decoration: InputDecoration(
-        labelText: "Full Evaluation Type",
+        labelText:
+            "Full Evaluation Type",
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius:
+              BorderRadius.circular(12),
         ),
       ),
       items: evaluationTypes.map((type) {
@@ -277,109 +394,47 @@ class _DetailedperformanceState extends State<Detailedperformance> {
   // ================= QUESTIONS GRAPH =================
 
   Widget overallGraph() {
-  List<_ChartData> chartData = [];
+    List<_ChartData> chartData = [];
 
-  for (int i = 0; i < questions.length; i++) {
-    double avg =
-        double.tryParse(
-              questions[i]['AverageScore'].toString(),
-            ) ??
-            0;
+    for (int i = 0;
+        i < questions.length;
+        i++) {
+      double avg =
+          double.tryParse(
+                questions[i]['AverageScore']
+                    .toString(),
+              ) ??
+              0;
 
-    chartData.add(
-      _ChartData(
-        "Q${i + 1}",
-        avg,
-      ),
-    );
-  }
-
-     double graphWidth = questions.length * 70;
-
-  if (graphWidth < MediaQuery.of(context).size.width) {
-    graphWidth = MediaQuery.of(context).size.width;
-  }
-
-  return Container(
-    padding: const EdgeInsets.all(12),
-    margin: const EdgeInsets.only(bottom: 16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      boxShadow: const [
-        BoxShadow(
-          color: Colors.black12,
-          blurRadius: 6,
+      chartData.add(
+        _ChartData(
+          "Q${i + 1}",
+          avg,
         ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$selectedType Questions Graph',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.green,
-          ),
-        ),
+      );
+    }
 
-        const SizedBox(height: 16),
+    double graphWidth =
+        questions.length * 70;
 
-        // ================= SCROLLABLE GRAPH =================
+    if (graphWidth <
+        MediaQuery.of(context)
+            .size
+            .width) {
+      graphWidth =
+          MediaQuery.of(context)
+              .size
+              .width;
+    }
 
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: graphWidth,
-            height: 320,
-            child: SfCartesianChart(
-              tooltipBehavior: TooltipBehavior(
-                enable: true,
-              ),
-              primaryXAxis: CategoryAxis(
-                labelRotation: 0,
-              ),
-              primaryYAxis: NumericAxis(
-                minimum: 0,
-                maximum: 4,
-                interval: 1,
-                title: AxisTitle(
-                  text: 'Result Out Of 4',
-                ),
-              ),
-              series: <CartesianSeries>[
-                ColumnSeries<_ChartData, String>(
-                  dataSource: chartData,
-                  xValueMapper: (_ChartData data, _) => data.label,
-                  yValueMapper: (_ChartData data, _) => data.value,
-                  dataLabelSettings: const DataLabelSettings(
-                    isVisible: true,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.green,
-                  width: 0.6,
-                  spacing: 0.2,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-  // ================= QUESTION CARD =================
-
-  Widget questionCard(q, int index) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
+      margin:
+          const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius:
+            BorderRadius.circular(14),
         boxShadow: const [
           BoxShadow(
             color: Colors.black12,
@@ -388,13 +443,113 @@ class _DetailedperformanceState extends State<Detailedperformance> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$selectedType Questions Graph',
+            style: const TextStyle(
+              fontWeight:
+                  FontWeight.bold,
+              fontSize: 16,
+              color: Colors.green,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ================= SCROLLABLE GRAPH =================
+
+          SingleChildScrollView(
+            scrollDirection:
+                Axis.horizontal,
+            child: SizedBox(
+              width: graphWidth,
+              height: 320,
+              child: SfCartesianChart(
+                tooltipBehavior:
+                    TooltipBehavior(
+                  enable: true,
+                ),
+                primaryXAxis:
+                    CategoryAxis(
+                  labelRotation: 0,
+                ),
+                primaryYAxis:
+                    NumericAxis(
+                  minimum: 0,
+                  maximum: 4,
+                  interval: 1,
+                  title: AxisTitle(
+                    text:
+                        'Result Out Of 4',
+                  ),
+                ),
+                series: <
+                    CartesianSeries>[
+                  ColumnSeries<
+                      _ChartData,
+                      String>(
+                    dataSource:
+                        chartData,
+                    xValueMapper:
+                        (_ChartData data,
+                                _) =>
+                            data.label,
+                    yValueMapper:
+                        (_ChartData data,
+                                _) =>
+                            data.value,
+                    dataLabelSettings:
+                        const DataLabelSettings(
+                      isVisible: true,
+                    ),
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                                8),
+                    color:
+                        Colors.green,
+                    width: 0.6,
+                    spacing: 0.2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= QUESTION CARD =================
+
+  Widget questionCard(q, int index) {
+    return Container(
+      margin:
+          const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+            BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Text(
             "Q${index + 1}",
             style: const TextStyle(
               color: Colors.green,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+                  FontWeight.bold,
               fontSize: 16,
             ),
           ),
@@ -404,7 +559,8 @@ class _DetailedperformanceState extends State<Detailedperformance> {
           Text(
             q['QuestionText'] ?? "",
             style: const TextStyle(
-              fontWeight: FontWeight.w500,
+              fontWeight:
+                  FontWeight.w500,
               fontSize: 15,
             ),
           ),
@@ -415,7 +571,8 @@ class _DetailedperformanceState extends State<Detailedperformance> {
             "Average Result: ${q['AverageScore']} / 4",
             style: const TextStyle(
               color: Colors.green,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+                  FontWeight.bold,
             ),
           ),
 
@@ -424,13 +581,15 @@ class _DetailedperformanceState extends State<Detailedperformance> {
           starRow("Poor", q['Score1']),
           const SizedBox(height: 6),
 
-          starRow("Average", q['Score2']),
+          starRow(
+              "Average", q['Score2']),
           const SizedBox(height: 6),
 
           starRow("Good", q['Score3']),
           const SizedBox(height: 6),
 
-          starRow("Excellent", q['Score4']),
+          starRow(
+              "Excellent", q['Score4']),
         ],
       ),
     );
@@ -441,26 +600,36 @@ class _DetailedperformanceState extends State<Detailedperformance> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF4F6FA),
+      backgroundColor:
+          const Color(0xffF4F6FA),
       appBar: AppBar(
-        title: const Text("Question Analysis"),
+        title:
+            const Text("Question Analysis"),
         backgroundColor: Colors.green,
       ),
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             const Text(
               "See Detailed Information Of Evaluations",
               style: TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight:
+                    FontWeight.bold,
               ),
             ),
 
             const SizedBox(height: 12),
 
             sessionDropdown(),
+
+            const SizedBox(height: 12),
+
+            // ================= NEW SECTION DROPDOWN =================
+
+            sectionDropdown(),
 
             const SizedBox(height: 12),
 
@@ -472,7 +641,8 @@ class _DetailedperformanceState extends State<Detailedperformance> {
               selectedType,
               style: const TextStyle(
                 color: Colors.green,
-                fontWeight: FontWeight.bold,
+                fontWeight:
+                    FontWeight.bold,
                 fontSize: 16,
               ),
             ),
@@ -482,7 +652,8 @@ class _DetailedperformanceState extends State<Detailedperformance> {
             Expanded(
               child: loading
                   ? const Center(
-                      child: CircularProgressIndicator(),
+                      child:
+                          CircularProgressIndicator(),
                     )
                   : questions.isEmpty
                       ? const Center(
@@ -500,8 +671,10 @@ class _DetailedperformanceState extends State<Detailedperformance> {
 
                             ...List.generate(
                               questions.length,
-                              (index) => questionCard(
-                                questions[index],
+                              (index) =>
+                                  questionCard(
+                                questions[
+                                    index],
                                 index,
                               ),
                             ),
