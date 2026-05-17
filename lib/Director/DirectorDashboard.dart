@@ -2,6 +2,8 @@
 
 import 'package:epams/Director/AddKpi/AddKPI.dart';
 import 'package:epams/Director/AddPeerEvaluators.dart';
+import 'package:epams/Director/AllComparison.dart';
+import 'package:epams/Director/AllPerformance.dart';
 import 'package:epams/Director/ConfidentialEvaluation.dart';
 import 'package:epams/Director/CourseEvaluation/CourseEvaluation.dart';
 import 'package:epams/Director/EmailSetting.dart';
@@ -302,6 +304,44 @@ class _DirectordashboardState extends State<Directordashboard> {
                             context,
                           MaterialPageRoute(
                      builder: (context) => const Courseevaluation(), // your target screen
+                         ),
+                      );
+                      },
+                    ),
+                  ),
+
+                   const SizedBox(height: 20),
+                   
+                   SizedBox(
+                    width: double.infinity,
+                    child: dashboardCard(
+                      icon: Icons.lock_outline,
+                      title: 'All Performance',
+                      subtitle: 'See All Performance',
+                      onTap: () {
+                         Navigator.push(
+                            context,
+                          MaterialPageRoute(
+                     builder: (context) => const Allperformance(), // your target screen
+                         ),
+                      );
+                      },
+                    ),
+                  ),
+
+                   const SizedBox(height: 20),
+                   
+                   SizedBox(
+                    width: double.infinity,
+                    child: dashboardCard(
+                      icon: Icons.lock_outline,
+                      title: 'All Comparison',
+                      subtitle: 'See All kpi based Comparison ',
+                      onTap: () {
+                         Navigator.push(
+                            context,
+                          MaterialPageRoute(
+                     builder: (context) => const AllComparisonScreen(), // your target screen
                          ),
                       );
                       },

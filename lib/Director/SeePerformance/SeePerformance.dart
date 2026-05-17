@@ -5,7 +5,7 @@ import 'dart:convert';
 //import 'package:epams/Director/CompareResult.dart';
 import 'package:epams/Director/SeePerformance/DetailComparison.dart';
 import 'package:epams/Director/SeePerformance/DetailedPerformance.dart';
-import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
+import 'package:epams/Student/ConfidentialEvaluationStudents/Confidential_db.dart';
 //import 'package:epams/Director/ViewPerformance.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';

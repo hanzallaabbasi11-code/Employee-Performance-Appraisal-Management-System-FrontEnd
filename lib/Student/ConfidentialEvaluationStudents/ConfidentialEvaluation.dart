@@ -1,8 +1,8 @@
 // ignore_for_file: file_names, avoid_print
 
 import 'dart:convert';
-import 'package:epams/Student/ConfidentialEvaluation/ConfidentialEvaluationForm.dart';
-import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
+import 'package:epams/Student/ConfidentialEvaluationStudents/ConfidentialEvaluationForm.dart';
+import 'package:epams/Student/ConfidentialEvaluationStudents/Confidential_db.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

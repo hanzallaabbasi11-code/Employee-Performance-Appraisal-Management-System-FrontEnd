@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 import 'package:epams/Student/TeacherEvaluation/EvaluationForm.dart';
-import 'package:epams/Student/ConfidentialEvaluation/ConfidentialEvaluation.dart';
+import 'package:epams/Student/ConfidentialEvaluationStudents/ConfidentialEvaluation.dart';
 import 'package:epams/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

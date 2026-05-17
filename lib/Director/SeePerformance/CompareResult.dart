@@ -1,6 +1,6 @@
 // ignore_for_file: file_names, avoid_print
 
-import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
+import 'package:epams/Student/ConfidentialEvaluationStudents/Confidential_db.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 

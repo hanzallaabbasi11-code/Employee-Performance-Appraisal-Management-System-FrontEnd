@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 import 'package:epams/Director/SeePerformance/CompareResult.dart';
-import 'package:epams/Student/ConfidentialEvaluation/Confidential_db.dart';
+import 'package:epams/Student/ConfidentialEvaluationStudents/Confidential_db.dart';
 import 'package:epams/Url.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
